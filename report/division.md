@@ -15,7 +15,7 @@ Theo phase, output ra folder chung bằng saveRDS, loadRDS (model) hoặc write.
 
 ### Phase 1 Step 1 Data Preprocessing
 
-- Check for and handle missing values, duplicate records, and potential outliers.
+- Check for and handle missing values, duplicate records, and potential outliers (mulitiple methods).
 - Group the granular job titles (job-title) into major, meaningful job categories (e.g., Data Analyst, Data Scientist, Data Engineer, Machine Learning/AI Engineer, Management/Lead).
 - Encode categorical variables (using Ordinal/One-Hot Encoding) and scale numerical features as necessary.
 
@@ -70,7 +70,7 @@ Phat, Dung
   Recall, F1-Score, and ROC-AUC.
 - Select the best model for each task and justify your choice.
 
-Phat,
+Phat
 
 ### Phase 3 Step 7 Interpretation and Recommendations
 
@@ -79,9 +79,11 @@ Phat,
 - Propose potential avenues for model improvement or alternative analytical ap-
   proaches to achieve better predictive performance
 
-Phat,
+Phat, Bao, Dung
 
 ### Writing report
+
+Phat, Bao, Dung
 
 ## Activity 2
 
@@ -89,20 +91,20 @@ Dataset:
 
 Phat
 
-### Clean + Description
+### Phase 1, Step 1, Clean + Description
 
 Detailed report + Reproducible step for cleaning
-Phat
+Phat, Dung
 
-### Descriptive statistic
+### Phase 1, Step 2, Descriptive statistic
 
 Plots, tables, etc
-Phat
+Phat, Bao
 
-### Raise question + apply model
+### Phase 2, Step 3, Raise question + apply model
 
-Phat
+Phat, Bao, Dung
 
 ### Write report
 
-Phat
+Phat, Bao, Dung
