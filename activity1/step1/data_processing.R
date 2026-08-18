@@ -17,9 +17,25 @@ str(data)
 
 # Now we inpsect the data to find outliers
 
-boxplot(data$salary_in_usd)
-# The salary in usd has a few outliers according to the boxplot, but they are useful information on how the salary is evalutated, thsu we won't handle them
+nrow(data)
+ggplot(data, aes(salary_in_usd)) +
+  geom_boxplot()
+# The salary in usd has a few outliers according to the boxplot. They only take around 1% of observation but having much larger value (from 3e5 to 6e5, while the mean is at 1e5), thus we should clamp them to 1.5 of IQR range.
 
+
+handle_outlier <- function(data) { # Handle outlier by clamping them in 1.5 IQR
+  data_quantile <- quantile(data, c(0.25, 0.75))
+
+  iqr <- data_quantile[2] - data_quantile[1]
+  lower_bound <- data_quantile[1] - 1.5 * iqr
+  upper_bound <- data_quantile[2] + 1.5 * iqr
+  pmax(lower_bound, pmin(data, upper_bound))
+}
+data <- data |>
+  mutate(salary_in_usd = handle_outlier(salary_in_usd))
+
+ggplot(data, aes(salary_in_usd)) +
+  geom_boxplot()
 table(data$work_year)
 # The data is seem to be collected in 2020 - 2022 period, thus the work year should remain as numerical value so as to predict the salary of the following years
 
@@ -122,3 +138,4 @@ data <- data |>
   mutate(standardized_remote_ratio = (remote_ratio - mean(remote_ratio)) / sqrt(var(remote_ratio)))
 
 str(data)
+saveRDS(data, "../dataset/cleaned_data.rds")
