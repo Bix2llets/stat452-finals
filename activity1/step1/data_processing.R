@@ -58,16 +58,9 @@ table(data$job_title)
 # The job title has many value with small frequencies, suggesting they are collected from how people call their working position
 # We unify how the job title by string matching
 
-# Chosen dispcipline: Artificial Intelligence, Machine Learning, Data
 # Chosen roles in their discipline: scientist, engineer,
 # Leadership: Is leader or not
 data <- (data |> mutate(
-  discipline = case_when(
-    str_detect(job_title, "\\b(Data|ETL|Analytics|Scientist)\\b") ~ "Data Science",
-    str_detect(job_title, "\\b(AI|Artificial Intelligence|Computer Vision|NLP)\\b") ~ "Artificial Intelligence",
-    str_detect(job_title, "\\b(ML|Machine Learning)\\b") ~ "Machine Learning",
-    .default = "Other"
-  ),
   role = case_when(
     str_detect(job_title, "\\b(Engineer|Developer|Engineering|Architect|Specialist)\\b") ~ "Engineering",
     str_detect(job_title, "\\b(Scientist|Research|Researcher|Science)\\b") ~ "Research",
@@ -81,7 +74,7 @@ data <- (data |> mutate(
 ))
 
 # Check for non-classified roles
-data |> select(job_title, discipline, role, leadership)
+data |> select(job_title, role, leadership)
 # Clearing the job_title
 data <- data |> mutate(job_title = NULL)
 
@@ -89,13 +82,14 @@ data <- data |> mutate(job_title = NULL)
 
 table(data$role)
 table(data$leadership)
-table(data$discipline)
-table(data$discipline, data$role)
 
 # The data shows that the job categories leans toward the non-management roles in data science field, where most of the job title is different roles in data science. The number of data in other field is much less.
+# There are also large bias in collected data toward the data science role, where the number of observation there is almost 10 times the second largest (540 and 56). This suggest splitting them by discipline is not a good idea.
+# The factor of discipline is thus put at question for its ability to explain the variance in salary
+# Moreover, since the collected data is named "Data Science Job Salaries", it further reinforce the idea that the variance in job title is actually how people perceive their job to be.
+# Therefore, we conclude that grouping the disciplines based on the job title is not correct.
 
 # Factorize the variables
-str(data)
 
 data <- data |>
   mutate(company_size = case_when(
@@ -117,19 +111,14 @@ data <- data |>
     .default = -1
   ))
 
-
-str(data)
-
 data <- data |>
   mutate(experience_level = as.factor(experience_level)) |>
   mutate(employment_type = as.factor(employment_type)) |>
   mutate(employee_residence = as.factor(employee_residence)) |>
   mutate(company_location = as.factor(company_location)) |>
   mutate(company_size = as.factor(company_size)) |>
-  mutate(discipline = as.factor(discipline)) |>
   mutate(role = as.factor(role)) |>
   mutate(leadership = as.factor(leadership))
-str(data)
 
 # Standardizing independent numerical variables
 
