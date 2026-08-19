@@ -70,6 +70,10 @@ data <- (data |> mutate(
   leadership = case_when(
     .default = FALSE,
     str_detect(job_title, "\\b(Lead|Director|Manager|Principal|Head|Staff)\\b") ~ TRUE
+  ),
+  is_fulltime = case_when(
+    .default = FALSE,
+    str_detect(employment_type, "FT") ~ TRUE
   )
 ))
 
