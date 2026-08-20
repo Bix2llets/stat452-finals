@@ -10,8 +10,7 @@ str(data)
 
 # To unify the units, we will use the converesion of salary to USD and remove the salary in other units, as well as the unit
 # The X column is also not being used since it seems like a No. numbering for each entry
-
-data <- data |> select(!c("X", "salary", "salary_currency"))
+data <- data |> dplyr::select(!c("X", "salary", "salary_currency"))
 
 str(data)
 
@@ -65,20 +64,33 @@ data <- (data |> mutate(
     str_detect(job_title, "\\b(Engineer|Developer|Engineering|Architect|Specialist)\\b") ~ "Engineering",
     str_detect(job_title, "\\b(Scientist|Research|Researcher|Science)\\b") ~ "Research",
     str_detect(job_title, "\\b(Analyst|Analytics)\\b") ~ "Analyst",
-    .default = "Unspecified"
+    .default = NA
   ),
   leadership = case_when(
     .default = FALSE,
     str_detect(job_title, "\\b(Lead|Director|Manager|Principal|Head|Staff)\\b") ~ TRUE
   ),
-  is_fulltime = case_when(
-    .default = FALSE,
-    str_detect(employment_type, "FT") ~ TRUE
+  employment_type = case_when(
+    .default = "Other",
+    str_detect(employment_type, "FT") ~ "Fulltime"
+  ),
+  company_location = case_when(
+    .default = "Other",
+    str_detect(company_location, "US") ~ "US"
+  ),
+  employee_residence = case_when(
+    .default = "Other",
+    str_detect(company_location, "US") ~ "US"
   )
 ))
 
+# The roles of those having NA is those who have job title of "Head of something". It mean there role are unclear, only know that they are leader. Therefore, we decided to give their role as NA then filter them out, as they are missing value and they only take a small proporiton of the whole observation
+#
 # Check for non-classified roles
-data |> select(job_title, role, leadership)
+data |> dplyr::select(job_title, role, leadership)
+data |> filter(is.na(role) == TRUE)
+data <- data |> filter(is.na(role) == FALSE)
+
 # Clearing the job_title
 data <- data |> mutate(job_title = NULL)
 

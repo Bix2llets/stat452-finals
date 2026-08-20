@@ -14,13 +14,10 @@ ggplot(data, aes(salary_in_usd)) +
 ggsave("salary_hisotogram.pdf")
 
 
-ggplot(data, aes(salary_in_usd)) +
-  geom_boxplot()
-# By observign the histogram, we see that there is a tendency of forming a the bell curve. To confirm it, we use the test for narmality
-shapiro.test(data$salary_in_usd)
-jarque.bera.test(data$salary_in_usd)
 
-# Both test gives p-value very small, so we conclude the salary is not normally distirbuted
+# By observign the histogram, we see that there is a tendency of forming a the bell curve, although right skewed. To confirm it, we use the test for narmality
+
+
 
 ggplot(data, aes(salary_in_usd, experience_level)) +
   geom_boxplot() +
