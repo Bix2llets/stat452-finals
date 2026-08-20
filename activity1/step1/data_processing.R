@@ -2,6 +2,7 @@
 #
 library(tidyverse)
 data <- read.csv("../dataset/ds_salaries.csv")
+set.seed(6767)
 
 # First, we use head and str to get the sample of data and their types
 head(data)
@@ -142,5 +143,6 @@ data <- data |>
   mutate(standardized_year = (work_year - mean(work_year)) / sqrt(var(work_year))) |>
   mutate(standardized_remote_ratio = (remote_ratio - mean(remote_ratio)) / sqrt(var(remote_ratio)))
 
+data <- data[sample(nrow(data)), ]
 str(data)
 saveRDS(data, "../dataset/cleaned_data.rds")
