@@ -81,7 +81,7 @@ data <- (data |> mutate(
   ),
   employee_residence = case_when(
     .default = "Other",
-    str_detect(company_location, "US") ~ "US"
+    str_detect(employee_residence, "US") ~ "US"
   )
 ))
 
@@ -143,6 +143,5 @@ data <- data |>
   mutate(standardized_year = (work_year - mean(work_year)) / sqrt(var(work_year))) |>
   mutate(standardized_remote_ratio = (remote_ratio - mean(remote_ratio)) / sqrt(var(remote_ratio)))
 
-data <- data[sample(nrow(data)), ]
 str(data)
 saveRDS(data, "../dataset/cleaned_data.rds")

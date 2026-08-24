@@ -14,6 +14,9 @@ ggplot(data, aes(salary_in_usd)) +
 ggsave("salary_hisotogram.pdf")
 
 
+ggplot(data, aes(sqrt(salary_in_usd))) +
+  geom_histogram(bins = 20)
+ggsave("salary_hisotogram_sqrt.pdf")
 
 # By observign the histogram, we see that there is a tendency of forming a the bell curve, although right skewed. To confirm it, we use the test for narmality
 
