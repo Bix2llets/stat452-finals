@@ -3,13 +3,6 @@ library(tseries)
 
 data <- readRDS("../dataset/cleaned_data.rds")
 
-# Step 1 stores the ordinal variables as bare integer codes ("1"/"2"/"3",
-# "0"/"1"), which makes every axis below unreadable. Restore the original
-# S/M/L, EN/MI/SE/EX and leadership labels (same level order, so nothing about
-# the data changes except how the levels are printed).
-source("../shared/factor_labels.R")
-data <- apply_factor_labels(data)
-
 print(str(data))
 
 

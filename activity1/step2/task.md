@@ -4,4 +4,4 @@
 | ---- | --------------------------------------------------------------------------- |
 | Phat | Descriptive statistics, all EDA boxplots and histograms                     |
 | Bao  |                                                                             |
-| Dung |                                                                             |
+| Dung | Review again and fix some issues occur                                      |
