@@ -85,6 +85,7 @@ data <- (data |> mutate(
   )
 ))
 
+
 # The roles of those having NA is those who have job title of "Head of something". It mean there role are unclear, only know that they are leader. Therefore, we decided to give their role as NA then filter them out, as they are missing value and they only take a small proporiton of the whole observation
 #
 # Check for non-classified roles
@@ -128,20 +129,22 @@ data <- data |>
     .default = -1
   ))
 
+
+
 data <- data |>
-  mutate(experience_level = as.factor(experience_level)) |>
+  mutate(experience_level = factor(experience_level, ordered = TRUE, labels = c("Entry", "Mid-level", "Senior", "Executive"))) |>
   mutate(employment_type = as.factor(employment_type)) |>
   mutate(employee_residence = as.factor(employee_residence)) |>
   mutate(company_location = as.factor(company_location)) |>
-  mutate(company_size = as.factor(company_size)) |>
+  mutate(company_size = factor(company_size, ordered = TRUE, labels = c("Small", "Medium", "Large"))) |>
   mutate(role = as.factor(role)) |>
-  mutate(leadership = as.factor(leadership))
+  mutate(leadership = factor(leadership, ordered = TRUE, labels = c("No", "Yes")))
 
 # Standardizing independent numerical variables
 
-data <- data |>
+data <- (data |>
   mutate(standardized_year = (work_year - mean(work_year)) / sqrt(var(work_year))) |>
-  mutate(standardized_remote_ratio = (remote_ratio - mean(remote_ratio)) / sqrt(var(remote_ratio)))
+  mutate(standardized_remote_ratio = (remote_ratio - mean(remote_ratio)) / sqrt(var(remote_ratio))))
 
 str(data)
 saveRDS(data, "../dataset/cleaned_data.rds")
