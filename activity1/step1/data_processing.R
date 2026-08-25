@@ -9,18 +9,30 @@ head(data)
 str(data)
 
 
-# To unify the units, we will use the converesion of salary to USD and remove the salary in other units, as well as the unit
-# The X column is also not being used since it seems like a No. numbering for each entry
-data <- data |> dplyr::select(!c("X", "salary", "salary_currency"))
+# To unify the units, we use salary in USD and remove salary in other units.
+# Preserve the source row ID, observed response, and original category codes so
+# Step 4 can split first and learn all preprocessing from training data. The
+# existing collapsed variables remain below for the Step 2/3 analyses.
+data <- data |>
+  rename(source_row_id = X) |>
+  mutate(
+    observed_salary_in_usd = salary_in_usd,
+    employment_type_code = employment_type,
+    employee_residence_code = employee_residence,
+    company_location_code = company_location
+  ) |>
+  dplyr::select(!c("salary", "salary_currency"))
 
 str(data)
 
-# Now we inpsect the data to find outliers
+# Now we inspect the data for potential outliers.
 
 nrow(data)
 ggplot(data, aes(salary_in_usd)) +
   geom_boxplot()
-# The salary in usd has a few outliers according to the boxplot. They only take around 1% of observation but having much larger value (from 3e5 to 6e5, while the mean is at 1e5), thus we should clamp them to 1.5 of IQR range.
+# The legacy Step 2/3 response is winsorized at the 1.5-IQR limits. The
+# untouched observed response is retained in observed_salary_in_usd and is the
+# only response used by Step 4, so the held-out outcomes are not overwritten.
 
 
 handle_outlier <- function(data) { # Handle outlier by clamping them in 1.5 IQR
@@ -45,9 +57,12 @@ table(data$remote_ratio)
 # In real life, the remote ration is calculated as day of remote work : total working day, which make the ratio may take other value than 0, 50 and 100
 #
 
-nrow(data[duplicated(data) == TRUE, ])
-# 42 duplicated entries. This would not happen if the X value is not removed, which mean these value is likely independent and not a result of faulty collection.
-# Therefore, the duplicated values should remain
+duplicate_check <- data |> dplyr::select(!source_row_id)
+nrow(duplicate_check[duplicated(duplicate_check) == TRUE, ])
+# There are 42 exact duplicate substantive records after ignoring the source
+# row ID. We cannot tell whether they are collection duplicates or repeated
+# observations, so they remain in the descriptive data. Step 4 assigns
+# identical modeling records to the same partition to prevent train/test twins.
 #
 # Check for NA
 sum(is.na(data))
@@ -86,7 +101,11 @@ data <- (data |> mutate(
 ))
 
 
-# The roles of those having NA is those who have job title of "Head of something". It mean there role are unclear, only know that they are leader. Therefore, we decided to give their role as NA then filter them out, as they are missing value and they only take a small proporiton of the whole observation
+# Seven management titles cannot be assigned to one of the three functional
+# disciplines by this rule (five Head of Data, one Head of Machine Learning,
+# and one Machine Learning Manager). They are removed for compatibility with
+# the existing Step 2/3 role analysis; this selective loss is documented as a
+# remaining limitation in the Step 4 audit.
 #
 # Check for non-classified roles
 data |> dplyr::select(job_title, role, leadership)
@@ -101,11 +120,9 @@ data <- data |> mutate(job_title = NULL)
 table(data$role)
 table(data$leadership)
 
-# The data shows that the job categories leans toward the non-management roles in data science field, where most of the job title is different roles in data science. The number of data in other field is much less.
-# There are also large bias in collected data toward the data science role, where the number of observation there is almost 10 times the second largest (540 and 56). This suggest splitting them by discipline is not a good idea.
-# The factor of discipline is thus put at question for its ability to explain the variance in salary
-# Moreover, since the collected data is named "Data Science Job Salaries", it further reinforce the idea that the variance in job title is actually how people perceive their job to be.
-# Therefore, we conclude that grouping the disciplines based on the job title is not correct.
+# The retained functional categories are reasonably represented: Analyst 127,
+# Engineering 248, and Research 225. Leadership is modeled separately because
+# management seniority and functional discipline capture different information.
 
 # Factorize the variables
 
@@ -140,7 +157,9 @@ data <- data |>
   mutate(role = as.factor(role)) |>
   mutate(leadership = factor(leadership, ordered = TRUE, labels = c("No", "Yes")))
 
-# Standardizing independent numerical variables
+# Legacy full-data standardized copies retained for Steps 2/3 compatibility.
+# Step 4 explicitly excludes these columns and estimates scaling from training
+# data only.
 
 data <- (data |>
   mutate(standardized_year = (work_year - mean(work_year)) / sqrt(var(work_year))) |>

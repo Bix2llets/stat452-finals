@@ -1,0 +1,17 @@
+Activity 1 Step 4 model training summary
+
+Input modeling rows: 600
+Split: 480 training rows (80.0%), 120 testing rows (20.0%)
+Split seed: 6767; grouped CV seed: 6768
+Identical-record groups: 555 total; none cross the train/test split or CV folds
+Response: uncapped observed salary_in_usd; modeled on its square-root scale
+Predictors: work_year, experience_level, employment_type, remote_work, company_location, company_size, role, leadership
+Training-only preprocessing: 2% rare-level pooling for original employment/location codes; unknown/novel handling; treatment dummies; zero-variance removal; work-year normalization
+Baked predictor columns: 20
+Models fitted: multiple linear regression, ridge regression, LASSO regression
+Ridge selected lambda (1-SE rule): 76.57622185
+LASSO selected lambda (1-SE rule): 8.02224563
+LASSO nonzero predictors at selected lambda: 7
+Dollar inverse: nonnegative square plus empirical training/OOF smearing terms; naive squared predictions are also retained
+Held-out transformed and dollar predictions are stored in continuous_salary_models.rds.
+RMSE, MAE, R-squared, model ranking, and best-model selection are intentionally deferred to Step 6.
