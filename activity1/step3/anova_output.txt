@@ -1,0 +1,840 @@
+            leadership
+company_size  No Yes
+      Small   72  10
+      Medium 301  24
+      Large  163  30
+
+	Shapiro-Wilk normality test
+
+data:  residuals(model)
+W = 0.90397, p-value < 2.2e-16
+
+
+	studentized Breusch-Pagan test
+
+data:  model
+BP = 19.379, df = 5, p-value = 0.001633
+
+Anova Table (Type III tests)
+
+Response: salary
+                            Sum Sq  Df  F value    Pr(>F)    
+(Intercept)             2.9784e+12   1 662.1720 < 2.2e-16 ***
+company_size            3.1729e+10   2   3.5270   0.03001 *  
+leadership              1.8341e+11   1  40.7755 3.446e-10 ***
+company_size:leadership 2.9173e+10   2   3.2429   0.03974 *  
+Residuals               2.6718e+12 594                       
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+*** Breusch-Pagan rejects (p = 0.00163 ). Read the HC3 table below, not the classical one above. ***
+Analysis of Deviance Table (Type III tests)
+
+Response: salary
+                         Df        F    Pr(>F)    
+(Intercept)               1 338.3018 < 2.2e-16 ***
+company_size              2   1.4848   0.22739    
+leadership                1  20.8321 6.096e-06 ***
+company_size:leadership   2   2.4941   0.08343 .  
+Residuals               594                       
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+            leadership
+company_size  No Yes
+      Small   72  10
+      Medium 301  24
+      Large  163  30
+
+	Shapiro-Wilk normality test
+
+data:  residuals(model)
+W = 0.98687, p-value = 3.181e-05
+
+
+	studentized Breusch-Pagan test
+
+data:  model
+BP = 10.233, df = 5, p-value = 0.06891
+
+Anova Table (Type III tests)
+
+Response: sqrt(salary)
+                          Sum Sq  Df   F value    Pr(>F)    
+(Intercept)             20945909   1 2170.4352 < 2.2e-16 ***
+company_size               63544   2    3.2923   0.03785 *  
+leadership                406285   1   42.0996  1.83e-10 ***
+company_size:leadership    49064   2    2.5420   0.07956 .  
+Residuals                5732431 594                        
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+ company_size leadership emmean    SE  df lower.CL upper.CL
+ Small        No            243 11.60 594      221      266
+ Medium       No            325  5.66 594      314      336
+ Large        No            309  7.69 594      294      324
+ Small        Yes           376 31.10 594      315      437
+ Medium       Yes           377 20.10 594      338      417
+ Large        Yes           408 17.90 594      373      443
+
+Results are given on the sqrt (not the response) scale. 
+Confidence level used: 0.95 
+company_size = Small:
+ contrast estimate    SE  df t.ratio p.value
+ No - Yes   -82010 24000 594  -3.414  0.0007
+
+company_size = Medium:
+ contrast estimate    SE  df t.ratio p.value
+ No - Yes   -36564 15600 594  -2.349  0.0192
+
+company_size = Large:
+ contrast estimate    SE  df t.ratio p.value
+ No - Yes   -71224 15400 594  -4.628 <0.0001
+
+leadership = No:
+ contrast       estimate    SE  df t.ratio p.value
+ Small - Medium   -46461  6730 594  -6.902 <0.0001
+ Small - Large    -36049  7370 594  -4.891 <0.0001
+ Medium - Large    10412  6010 594   1.732  0.1940
+
+leadership = Yes:
+ contrast       estimate    SE  df t.ratio p.value
+ Small - Medium    -1016 27800 594  -0.037  0.9993
+ Small - Large    -25263 27600 594  -0.917  0.6299
+ Medium - Large   -24248 21000 594  -1.152  0.4825
+
+P value adjustment: tukey method for comparing a family of 3 estimates 
+            role
+company_size Analyst Engineering Research
+      Small       12          35       35
+      Medium      85         138      102
+      Large       30          75       88
+
+	Shapiro-Wilk normality test
+
+data:  residuals(model)
+W = 0.98228, p-value = 1.148e-06
+
+
+	studentized Breusch-Pagan test
+
+data:  model
+BP = 19.732, df = 8, p-value = 0.0114
+
+Anova Table (Type III tests)
+
+Response: sqrt(salary)
+                    Sum Sq  Df   F value    Pr(>F)    
+(Intercept)       31602421   1 3082.5129 < 2.2e-16 ***
+company_size        358341   2   17.4764 4.227e-08 ***
+role                 91740   2    4.4742   0.01179 *  
+company_size:role    52692   4    1.2849   0.27461    
+Residuals          6059028 591                        
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+*** Breusch-Pagan rejects (p = 0.0114 ). Read the HC3 table below, not the classical one above. ***
+Analysis of Deviance Table (Type III tests)
+
+Response: sqrt(salary)
+                   Df         F    Pr(>F)    
+(Intercept)         1 3072.8949 < 2.2e-16 ***
+company_size        2   20.6781 2.089e-09 ***
+role                2    4.8103  0.008467 ** 
+company_size:role   4    1.6001  0.172727    
+Residuals         591                        
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+company_size = Small:
+ contrast               estimate    SE  df t.ratio p.value
+ Analyst - Engineering    -42465 12600 591  -3.360  0.0024
+ Analyst - Research       -25605 14300 591  -1.784  0.1757
+ Engineering - Research    16860 13400 591   1.254  0.4222
+
+company_size = Medium:
+ contrast               estimate    SE  df t.ratio p.value
+ Analyst - Engineering    -12845  6970 591  -1.844  0.1564
+ Analyst - Research       -19118  8290 591  -2.307  0.0556
+ Engineering - Research    -6273  8900 591  -0.705  0.7606
+
+company_size = Large:
+ contrast               estimate    SE  df t.ratio p.value
+ Analyst - Engineering     -7726 16800 591  -0.460  0.8899
+ Analyst - Research       -19728 16400 591  -1.201  0.4532
+ Engineering - Research   -12002 11800 591  -1.021  0.5639
+
+P value adjustment: tukey method for comparing a family of 3 estimates 
+role = Analyst:
+ contrast       estimate    SE  df t.ratio p.value
+ Small - Medium   -57720 10600 591  -5.469 <0.0001
+ Small - Large    -54034 17300 591  -3.124  0.0053
+ Medium - Large     3686 15000 591   0.245  0.9674
+
+role = Engineering:
+ contrast       estimate    SE  df t.ratio p.value
+ Small - Medium   -28100  9840 591  -2.855  0.0124
+ Small - Large    -19295 11900 591  -1.617  0.2393
+ Medium - Large     8805 10200 591   0.861  0.6652
+
+role = Research:
+ contrast       estimate    SE  df t.ratio p.value
+ Small - Medium   -51234 12800 591  -4.010  0.0002
+ Small - Large    -48158 13300 591  -3.623  0.0009
+ Medium - Large     3076 10600 591   0.290  0.9548
+
+P value adjustment: tukey method for comparing a family of 3 estimates 
+            experience_level
+company_size Entry Mid-level Senior Executive
+      Small     29        28     22         3
+      Medium    30        98    185        12
+      Large     29        86     70         8
+
+	Shapiro-Wilk normality test
+
+data:  residuals(model)
+W = 0.97893, p-value = 1.337e-07
+
+
+	studentized Breusch-Pagan test
+
+data:  model
+BP = 29.431, df = 11, p-value = 0.001946
+
+Anova Table (Type III tests)
+
+Response: sqrt(salary)
+                                Sum Sq  Df   F value  Pr(>F)    
+(Intercept)                   19431981   1 2556.0418 < 2e-16 ***
+company_size                     69214   2    4.5521 0.01092 *  
+experience_level               1303185   3   57.1394 < 2e-16 ***
+company_size:experience_level    91684   6    2.0100 0.06245 .  
+Residuals                      4470195 588                      
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+*** Breusch-Pagan rejects (p = 0.00195 ). Read the HC3 table below, not the classical one above. ***
+Analysis of Deviance Table (Type III tests)
+
+Response: sqrt(salary)
+                               Df        F Pr(>F)    
+(Intercept)                     1 577.1876 <2e-16 ***
+company_size                    2   1.5152 0.2206    
+experience_level                3  42.7457 <2e-16 ***
+company_size:experience_level   6   2.0312 0.0597 .  
+Residuals                     588                    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+experience_level = Entry:
+ contrast       estimate     SE  df t.ratio p.value
+ Small - Medium    10514  10000 588   1.049  0.5465
+ Small - Large     -9748  11900 588  -0.818  0.6918
+ Medium - Large   -20262  10900 588  -1.851  0.1542
+
+experience_level = Mid-level:
+ contrast       estimate     SE  df t.ratio p.value
+ Small - Medium   -36219   8280 588  -4.375 <0.0001
+ Small - Large    -41464   9250 588  -4.482 <0.0001
+ Medium - Large    -5245   8450 588  -0.621  0.8087
+
+experience_level = Senior:
+ contrast       estimate     SE  df t.ratio p.value
+ Small - Medium   -24617  13100 588  -1.876  0.1465
+ Small - Large    -29825  15600 588  -1.914  0.1356
+ Medium - Large    -5208   9760 588  -0.534  0.8548
+
+experience_level = Executive:
+ contrast       estimate     SE  df t.ratio p.value
+ Small - Medium     1747 120000 588   0.015  0.9999
+ Small - Large    -42634 130000 588  -0.328  0.9425
+ Medium - Large   -44381  56900 588  -0.780  0.7153
+
+P value adjustment: tukey method for comparing a family of 3 estimates 
+company_size = Small:
+ contrast                estimate     SE  df t.ratio p.value
+ Entry - (Mid-level)         8653  10100 588   0.854  0.8285
+ Entry - Senior            -54055  14900 588  -3.635  0.0017
+ Entry - Executive        -119805 119000 588  -1.008  0.7451
+ (Mid-level) - Senior      -62707  14200 588  -4.420 <0.0001
+ (Mid-level) - Executive  -128458 119000 588  -1.081  0.7012
+ Senior - Executive        -65751 119000 588  -0.551  0.9463
+
+company_size = Medium:
+ contrast                estimate     SE  df t.ratio p.value
+ Entry - (Mid-level)       -38080   8150 588  -4.674 <0.0001
+ Entry - Senior            -89186   7180 588 -12.428 <0.0001
+ Entry - Executive        -128573  20500 588  -6.261 <0.0001
+ (Mid-level) - Senior      -51106   6280 588  -8.142 <0.0001
+ (Mid-level) - Executive   -90493  20200 588  -4.471 <0.0001
+ Senior - Executive        -39387  19900 588  -1.982  0.1958
+
+company_size = Large:
+ contrast                estimate     SE  df t.ratio p.value
+ Entry - (Mid-level)       -23064  11200 588  -2.064  0.1661
+ Entry - Senior            -74132  12800 588  -5.796 <0.0001
+ Entry - Executive        -152692  54200 588  -2.819  0.0256
+ (Mid-level) - Senior      -51068  11300 588  -4.528 <0.0001
+ (Mid-level) - Executive  -129628  53800 588  -2.408  0.0766
+ Senior - Executive        -78560  54200 588  -1.450  0.4688
+
+P value adjustment: tukey method for comparing a family of 4 estimates 
+            company_location
+company_size Other  US
+      Small     51  31
+      Medium   108 217
+      Large     88 105
+
+	Shapiro-Wilk normality test
+
+data:  residuals(model)
+W = 0.9762, p-value = 2.669e-08
+
+
+	studentized Breusch-Pagan test
+
+data:  model
+BP = 19.578, df = 5, p-value = 0.001499
+
+Anova Table (Type III tests)
+
+Response: sqrt(salary)
+                                Sum Sq  Df   F value    Pr(>F)    
+(Intercept)                   37011829   1 5330.0516 < 2.2e-16 ***
+company_size                    137607   2    9.9084 5.849e-05 ***
+company_location               1280326   1  184.3790 < 2.2e-16 ***
+company_size:company_location    53332   2    3.8402   0.02203 *  
+Residuals                      4124731 594                        
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+*** Breusch-Pagan rejects (p = 0.0015 ). Read the HC3 table below, not the classical one above. ***
+Analysis of Deviance Table (Type III tests)
+
+Response: sqrt(salary)
+                               Df         F    Pr(>F)    
+(Intercept)                     1 3960.9416 < 2.2e-16 ***
+company_size                    2    6.7573  0.001254 ** 
+company_location                1  137.0183 < 2.2e-16 ***
+company_size:company_location   2    2.6395  0.072236 .  
+Residuals                     594                        
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+company_size = Small:
+ contrast   estimate    SE  df t.ratio p.value
+ Other - US   -40030 13400 594  -2.988  0.0029
+
+company_size = Medium:
+ contrast   estimate    SE  df t.ratio p.value
+ Other - US   -75226  5090 594 -14.777 <0.0001
+
+company_size = Large:
+ contrast   estimate    SE  df t.ratio p.value
+ Other - US   -86908  8990 594  -9.667 <0.0001
+
+company_location = Other:
+ contrast       estimate    SE  df t.ratio p.value
+ Small - Medium    -7751  7190 594  -1.079  0.5277
+ Small - Large     -8875  7410 594  -1.197  0.4551
+ Medium - Large    -1125  5610 594  -0.201  0.9781
+
+company_location = US:
+ contrast       estimate    SE  df t.ratio p.value
+ Small - Medium   -42947 12400 594  -3.464  0.0017
+ Small - Large    -55754 14300 594  -3.891  0.0003
+ Medium - Large   -12807  8680 594  -1.476  0.3033
+
+P value adjustment: tukey method for comparing a family of 3 estimates 
+                  company_location
+employee_residence Other  US
+             Other   245  24
+             US        2 329
+              company_location
+remote_ratio_f Other  US
+           0      58  69
+           50     76  20
+           100   113 264
+
+	Shapiro-Wilk normality test
+
+data:  residuals(model)
+W = 0.97729, p-value = 5.012e-08
+
+
+	studentized Breusch-Pagan test
+
+data:  model
+BP = 4.3495, df = 5, p-value = 0.5003
+
+Anova Table (Type III tests)
+
+Response: sqrt(salary)
+                                  Sum Sq  Df   F value Pr(>F)    
+(Intercept)                     30675890   1 4262.1668 <2e-16 ***
+remote_ratio_f                      9105   2    0.6326 0.5316    
+company_location                 1109830   1  154.2019 <2e-16 ***
+remote_ratio_f:company_location    10623   2    0.7380 0.4785    
+Residuals                        4275168 594                     
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+                leadership
+experience_level  No Yes
+       Entry      88   0
+       Mid-level 202  10
+       Senior    236  41
+       Executive  10  13
+                role
+experience_level Analyst Engineering Research
+       Entry          17          33       38
+       Mid-level      41          86       85
+       Senior         66         120       91
+       Executive       3           9       11
+
+	Shapiro-Wilk normality test
+
+data:  residuals(model)
+W = 0.97467, p-value = 1.13e-08
+
+
+	studentized Breusch-Pagan test
+
+data:  model
+BP = 21.094, df = 11, p-value = 0.03241
+
+Anova Table (Type III tests)
+
+Response: sqrt(salary)
+                        Sum Sq  Df   F value  Pr(>F)    
+(Intercept)           20350784   1 2622.5733 < 2e-16 ***
+experience_level       1564983   3   67.2256 < 2e-16 ***
+role                     46265   2    2.9811 0.05151 .  
+experience_level:role    32202   6    0.6916 0.65647    
+Residuals              4562794 588                      
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+*** Breusch-Pagan rejects (p = 0.0324 ). Read the HC3 table below, not the classical one above. ***
+Analysis of Deviance Table (Type III tests)
+
+Response: sqrt(salary)
+                       Df         F    Pr(>F)    
+(Intercept)             1 2547.6299 < 2.2e-16 ***
+experience_level        3   71.6044 < 2.2e-16 ***
+role                    2    5.2923  0.005272 ** 
+experience_level:role   6    0.7421  0.615894    
+Residuals             588                        
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+          company_location
+leadership Other  US
+       No    225 311
+       Yes    22  42
+
+	Shapiro-Wilk normality test
+
+data:  residuals(model)
+W = 0.97657, p-value = 3.284e-08
+
+
+	studentized Breusch-Pagan test
+
+data:  model
+BP = 4.0784, df = 3, p-value = 0.2531
+
+Anova Table (Type III tests)
+
+Response: sqrt(salary)
+                              Sum Sq  Df   F value    Pr(>F)    
+(Intercept)                 23794136   1 3570.3004 < 2.2e-16 ***
+leadership                    318431   1   47.7804  1.23e-11 ***
+company_location              603151   1   90.5026 < 2.2e-16 ***
+leadership:company_location    15942   1    2.3921    0.1225    
+Residuals                    3972020 596                        
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+leadership = No:
+ contrast   estimate    SE  df t.ratio p.value
+ Other - US   -74900  4220 596 -17.733 <0.0001
+
+leadership = Yes:
+ contrast   estimate    SE  df t.ratio p.value
+ Other - US   -68067 15700 596  -4.331 <0.0001
+
+company_location = Other:
+ contrast estimate    SE  df t.ratio p.value
+ No - Yes   -54466 11800 596  -4.597 <0.0001
+
+company_location = US:
+ contrast estimate    SE  df t.ratio p.value
+ No - Yes   -47633 11200 596  -4.269 <0.0001
+
+          role
+leadership Analyst Engineering Research
+       No      114         231      191
+       Yes      13          17       34
+
+	Shapiro-Wilk normality test
+
+data:  residuals(model)
+W = 0.98768, p-value = 6.031e-05
+
+
+	studentized Breusch-Pagan test
+
+data:  model
+BP = 9.5119, df = 5, p-value = 0.09031
+
+Anova Table (Type III tests)
+
+Response: sqrt(salary)
+                  Sum Sq  Df   F value    Pr(>F)    
+(Intercept)     23412918   1 2289.8384 < 2.2e-16 ***
+leadership        298630   1   29.2067 9.431e-08 ***
+role               36047   2    1.7627    0.1725    
+leadership:role     7464   2    0.3650    0.6943    
+Residuals        6073474 594                        
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+             company_location
+role          Other  US
+  Analyst        36  91
+  Engineering   112 136
+  Research       99 126
+
+	Shapiro-Wilk normality test
+
+data:  residuals(model)
+W = 0.97117, p-value = 1.769e-09
+
+
+	studentized Breusch-Pagan test
+
+data:  model
+BP = 9.4021, df = 5, p-value = 0.09406
+
+Anova Table (Type III tests)
+
+Response: sqrt(salary)
+                        Sum Sq  Df   F value    Pr(>F)    
+(Intercept)           44782187   1 6503.3348 < 2.2e-16 ***
+role                    161872   2   11.7536  9.86e-06 ***
+company_location       2008196   1  291.6332 < 2.2e-16 ***
+role:company_location     3682   2    0.2673    0.7655    
+Residuals              4090304 594                        
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+role = Analyst:
+ contrast   estimate   SE  df t.ratio p.value
+ Other - US   -67224 8230 594  -8.166 <0.0001
+
+role = Engineering:
+ contrast   estimate   SE  df t.ratio p.value
+ Other - US   -84647 6670 594 -12.693 <0.0001
+
+role = Research:
+ contrast   estimate   SE  df t.ratio p.value
+ Other - US   -79500 7060 594 -11.267 <0.0001
+
+company_location = Other:
+ contrast               estimate   SE  df t.ratio p.value
+ Analyst - Engineering    -16530 7000 594  -2.362  0.0484
+ Analyst - Research       -20823 7220 594  -2.884  0.0113
+ Engineering - Research    -4294 5760 594  -0.746  0.7362
+
+company_location = US:
+ contrast               estimate   SE  df t.ratio p.value
+ Analyst - Engineering    -33953 7950 594  -4.268 <0.0001
+ Analyst - Research       -33100 8090 594  -4.092  0.0001
+ Engineering - Research      853 7820 594   0.109  0.9935
+
+P value adjustment: tukey method for comparing a family of 3 estimates 
+           experience_level
+work_year_f Entry Mid-level Senior Executive
+       2020    20        32     17         2
+       2021    47        90     68         9
+       2022    21        90    192        12
+
+	Shapiro-Wilk normality test
+
+data:  residuals(model)
+W = 0.97422, p-value = 8.794e-09
+
+
+	studentized Breusch-Pagan test
+
+data:  model
+BP = 38.129, df = 11, p-value = 7.441e-05
+
+Anova Table (Type III tests)
+
+Response: sqrt(salary)
+                               Sum Sq  Df   F value Pr(>F)    
+(Intercept)                  16148619   1 2057.2471 <2e-16 ***
+work_year_f                      9344   2    0.5952 0.5518    
+experience_level               995083   3   42.2561 <2e-16 ***
+work_year_f:experience_level    10006   6    0.2125 0.9729    
+Residuals                     4615580 588                     
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+*** Breusch-Pagan rejects (p = 7.44e-05 ). Read the HC3 table below, not the classical one above. ***
+Analysis of Deviance Table (Type III tests)
+
+Response: sqrt(salary)
+                              Df        F    Pr(>F)    
+(Intercept)                    1 318.6229 < 2.2e-16 ***
+work_year_f                    2   0.2877    0.7501    
+experience_level               3  24.1332 9.699e-15 ***
+work_year_f:experience_level   6   0.1077    0.9955    
+Residuals                    588                       
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+experience_level = Entry:
+ contrast                          estimate     SE  df t.ratio p.value
+ work_year_f2020 - work_year_f2021     1849  12400 588   0.149  0.9878
+ work_year_f2020 - work_year_f2022    -5684  14000 588  -0.406  0.9133
+ work_year_f2021 - work_year_f2022    -7533  10500 588  -0.716  0.7539
+
+experience_level = Mid-level:
+ contrast                          estimate     SE  df t.ratio p.value
+ work_year_f2020 - work_year_f2021     2509  12200 588   0.206  0.9769
+ work_year_f2020 - work_year_f2022   -11002  11300 588  -0.972  0.5946
+ work_year_f2021 - work_year_f2022   -13512   7970 588  -1.696  0.2075
+
+experience_level = Senior:
+ contrast                          estimate     SE  df t.ratio p.value
+ work_year_f2020 - work_year_f2021     6946  22200 588   0.313  0.9474
+ work_year_f2020 - work_year_f2022   -12840  21100 588  -0.609  0.8153
+ work_year_f2021 - work_year_f2022   -19786   8570 588  -2.309  0.0553
+
+experience_level = Executive:
+ contrast                          estimate     SE  df t.ratio p.value
+ work_year_f2020 - work_year_f2021   -14968 181000 588  -0.083  0.9962
+ work_year_f2020 - work_year_f2022     -419 174000 588  -0.002  1.0000
+ work_year_f2021 - work_year_f2022    14549  55600 588   0.261  0.9630
+
+P value adjustment: tukey method for comparing a family of 3 estimates 
+           company_location
+work_year_f Other  US
+       2020    41  30
+       2021   116  98
+       2022    90 225
+
+	Shapiro-Wilk normality test
+
+data:  residuals(model)
+W = 0.97385, p-value = 7.229e-09
+
+
+	studentized Breusch-Pagan test
+
+data:  model
+BP = 29.856, df = 5, p-value = 1.574e-05
+
+Anova Table (Type III tests)
+
+Response: sqrt(salary)
+                               Sum Sq  Df   F value    Pr(>F)    
+(Intercept)                  36141792   1 5090.6432 < 2.2e-16 ***
+work_year_f                     71528   2    5.0374  0.006771 ** 
+company_location              1450211   1  204.2651 < 2.2e-16 ***
+work_year_f:company_location     9155   2    0.6448  0.525158    
+Residuals                     4217193 594                        
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+*** Breusch-Pagan rejects (p = 1.57e-05 ). Read the HC3 table below, not the classical one above. ***
+Analysis of Deviance Table (Type III tests)
+
+Response: sqrt(salary)
+                              Df         F    Pr(>F)    
+(Intercept)                    1 3716.2023 < 2.2e-16 ***
+work_year_f                    2    4.7988  0.008562 ** 
+company_location               1  149.1148 < 2.2e-16 ***
+work_year_f:company_location   2    0.5840  0.557987    
+Residuals                    594                        
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+company_location = Other:
+ contrast                          estimate    SE  df t.ratio p.value
+ work_year_f2020 - work_year_f2021    -2616  7530 594  -0.347  0.9357
+ work_year_f2020 - work_year_f2022   -17273  7520 594  -2.297  0.0570
+ work_year_f2021 - work_year_f2022   -14658  5340 594  -2.746  0.0171
+
+company_location = US:
+ contrast                          estimate    SE  df t.ratio p.value
+ work_year_f2020 - work_year_f2021     3127 17100 594   0.183  0.9817
+ work_year_f2020 - work_year_f2022    -8950 15300 594  -0.584  0.8287
+ work_year_f2021 - work_year_f2022   -12076  8940 594  -1.350  0.3681
+
+P value adjustment: tukey method for comparing a family of 3 estimates 
+           company_size
+work_year_f Small Medium Large
+       2020    25     14    32
+       2021    45     53   116
+       2022    12    258    45
+
+	Shapiro-Wilk normality test
+
+data:  residuals(model)
+W = 0.98013, p-value = 2.831e-07
+
+
+	studentized Breusch-Pagan test
+
+data:  model
+BP = 24.508, df = 8, p-value = 0.001883
+
+Anova Table (Type III tests)
+
+Response: sqrt(salary)
+                           Sum Sq  Df   F value    Pr(>F)    
+(Intercept)              23583426   1 2414.2156 < 2.2e-16 ***
+work_year_f                113432   2    5.8060 0.0031838 ** 
+company_size               169213   2    8.6611 0.0001962 ***
+work_year_f:company_size   113333   4    2.9005 0.0214033 *  
+Residuals                 5773223 591                        
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+*** Breusch-Pagan rejects (p = 0.00188 ). Read the HC3 table below, not the classical one above. ***
+Analysis of Deviance Table (Type III tests)
+
+Response: sqrt(salary)
+                          Df         F    Pr(>F)    
+(Intercept)                1 1896.0714 < 2.2e-16 ***
+work_year_f                2    6.8999 0.0010911 ** 
+company_size               2    8.9060 0.0001546 ***
+work_year_f:company_size   4    2.7267 0.0285974 *  
+Residuals                591                        
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+company_size = Small:
+ contrast                          estimate    SE  df t.ratio p.value
+ work_year_f2020 - work_year_f2021    -7570 13700 591  -0.553  0.8448
+ work_year_f2020 - work_year_f2022   -15359 15300 591  -1.001  0.5767
+ work_year_f2021 - work_year_f2022    -7789 14600 591  -0.534  0.8547
+
+company_size = Medium:
+ contrast                          estimate    SE  df t.ratio p.value
+ work_year_f2020 - work_year_f2021    32528 25500 591   1.274  0.4104
+ work_year_f2020 - work_year_f2022   -22660 24800 591  -0.915  0.6308
+ work_year_f2021 - work_year_f2022   -55189  7850 591  -7.032 <0.0001
+
+company_size = Large:
+ contrast                          estimate    SE  df t.ratio p.value
+ work_year_f2020 - work_year_f2021    -9699 14500 591  -0.668  0.7819
+ work_year_f2020 - work_year_f2022   -27743 17100 591  -1.626  0.2353
+ work_year_f2021 - work_year_f2022   -18044 13400 591  -1.347  0.3698
+
+P value adjustment: tukey method for comparing a family of 3 estimates 
+           role
+work_year_f Analyst Engineering Research
+       2020      13          26       32
+       2021      32          89       93
+       2022      82         133      100
+
+	Shapiro-Wilk normality test
+
+data:  residuals(model)
+W = 0.97803, p-value = 7.752e-08
+
+
+	studentized Breusch-Pagan test
+
+data:  model
+BP = 27.461, df = 8, p-value = 0.0005883
+
+Anova Table (Type III tests)
+
+Response: sqrt(salary)
+                   Sum Sq  Df   F value    Pr(>F)    
+(Intercept)      32176917   1 3224.1441 < 2.2e-16 ***
+work_year_f        405876   2   20.3345  2.88e-09 ***
+role               108930   2    5.4574  0.004482 ** 
+work_year_f:role    87262   4    2.1859  0.069210 .  
+Residuals         5898173 591                        
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+*** Breusch-Pagan rejects (p = 0.000588 ). Read the HC3 table below, not the classical one above. ***
+Analysis of Deviance Table (Type III tests)
+
+Response: sqrt(salary)
+                  Df         F    Pr(>F)    
+(Intercept)        1 2702.4057 < 2.2e-16 ***
+work_year_f        2   20.0673 3.699e-09 ***
+role               2    4.3185   0.01374 *  
+work_year_f:role   4    1.8170   0.12393    
+Residuals        591                        
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+role = Analyst:
+ contrast                          estimate    SE  df t.ratio p.value
+ work_year_f2020 - work_year_f2021   -37448 17700 591  -2.120  0.0867
+ work_year_f2020 - work_year_f2022   -50467 14500 591  -3.485  0.0015
+ work_year_f2021 - work_year_f2022   -13019 12400 591  -1.051  0.5448
+
+role = Engineering:
+ contrast                          estimate    SE  df t.ratio p.value
+ work_year_f2020 - work_year_f2021    -4636 12300 591  -0.376  0.9250
+ work_year_f2020 - work_year_f2022   -35097 11000 591  -3.186  0.0043
+ work_year_f2021 - work_year_f2022   -30461  9160 591  -3.326  0.0027
+
+role = Research:
+ contrast                          estimate    SE  df t.ratio p.value
+ work_year_f2020 - work_year_f2021    14291 17000 591   0.842  0.6770
+ work_year_f2020 - work_year_f2022   -37552 16600 591  -2.266  0.0614
+ work_year_f2021 - work_year_f2022   -51843  9320 591  -5.564 <0.0001
+
+P value adjustment: tukey method for comparing a family of 3 estimates 
+           leadership
+work_year_f  No Yes
+       2020  61  10
+       2021 177  37
+       2022 298  17
+
+	Shapiro-Wilk normality test
+
+data:  residuals(model)
+W = 0.97776, p-value = 6.591e-08
+
+
+	studentized Breusch-Pagan test
+
+data:  model
+BP = 13.138, df = 5, p-value = 0.02212
+
+Anova Table (Type III tests)
+
+Response: sqrt(salary)
+                         Sum Sq  Df   F value    Pr(>F)    
+(Intercept)            19627119   1 2126.8695 < 2.2e-16 ***
+work_year_f               78061   2    4.2295   0.01500 *  
+leadership               344449   1   37.3258 1.809e-09 ***
+work_year_f:leadership    56251   2    3.0478   0.04821 *  
+Residuals               5481535 594                        
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+*** Breusch-Pagan rejects (p = 0.0221 ). Read the HC3 table below, not the classical one above. ***
+Analysis of Deviance Table (Type III tests)
+
+Response: sqrt(salary)
+                        Df         F    Pr(>F)    
+(Intercept)              1 1819.1260 < 2.2e-16 ***
+work_year_f              2    4.2791   0.01428 *  
+leadership               1   31.9251 2.488e-08 ***
+work_year_f:leadership   2    2.9579   0.05269 .  
+Residuals              594                        
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+leadership = No:
+ contrast                          estimate    SE  df t.ratio p.value
+ work_year_f2020 - work_year_f2021     2527  9360 594   0.270  0.9606
+ work_year_f2020 - work_year_f2022   -40580  8930 594  -4.545 <0.0001
+ work_year_f2021 - work_year_f2022   -43107  5400 594  -7.986 <0.0001
+
+leadership = Yes:
+ contrast                          estimate    SE  df t.ratio p.value
+ work_year_f2020 - work_year_f2021   -30256 28600 594  -1.057  0.5411
+ work_year_f2020 - work_year_f2022   -29979 29700 594  -1.008  0.5721
+ work_year_f2021 - work_year_f2022      278 22200 594   0.013  0.9999
+
+P value adjustment: tukey method for comparing a family of 3 estimates 

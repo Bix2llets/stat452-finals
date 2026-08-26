@@ -17,6 +17,14 @@ library(rsample)
 library(recipes)
 library(glmnet)
 
+# Pin the factor coding explicitly instead of inheriting whatever the session
+# happens to have. Step 3 sets contr.sum globally for its Type III ANOVA; if
+# both files are sourced in one session and that setting leaked in here, the
+# model.matrix handed to cv.glmnet would be coded differently, which changes the
+# ridge / LASSO penalty and therefore the fitted models. Step 3 now restores the
+# option when it finishes, and this line is the second line of defence.
+options(contrasts = c("contr.treatment", "contr.poly"))
+
 split_seed <- 6767L
 cv_seed <- 6768L
 training_proportion <- 0.80

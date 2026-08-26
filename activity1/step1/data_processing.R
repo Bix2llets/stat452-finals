@@ -59,10 +59,17 @@ table(data$remote_ratio)
 
 duplicate_check <- data |> dplyr::select(!source_row_id)
 nrow(duplicate_check[duplicated(duplicate_check) == TRUE, ])
-# There are 42 exact duplicate substantive records after ignoring the source
-# row ID. We cannot tell whether they are collection duplicates or repeated
+# There are 42 exact duplicate substantive records at THIS point, i.e. while
+# job_title is still present and before the unclassifiable roles are dropped.
+# Once the job titles are collapsed into `role` further down, the count on the
+# saved cleaned_data.rds rises to 45 - collapsing categories necessarily creates
+# new ties. Both numbers are correct for their stage; quote 45 when talking
+# about the data Steps 2 and 3 actually analyse.
+# We cannot tell whether they are collection duplicates or repeated
 # observations, so they remain in the descriptive data. Step 4 assigns
 # identical modeling records to the same partition to prevent train/test twins.
+# Note for Step 3: these 45 records are pseudo-replication and mildly inflate
+# every F statistic there. multi_factor_anova.R repeats this caveat.
 #
 # Check for NA
 sum(is.na(data))
