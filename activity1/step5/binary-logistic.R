@@ -1,4 +1,4 @@
-logistic_data <- readRDS("../dataset/cleaned_data.rds") # Change the directory to the cleaned_data.rds
+logistic_data <- readRDS("../dataset/cleaned_data.rds") # Change the directory to the cleaned_data.rds if not found
 library(tidyverse)
 
 #
@@ -32,7 +32,13 @@ head(
 role_senior_env_model <- glm(is_top_tier ~ experience_level + leadership + role + company_size + employment_type + company_location, family = "binomial", data = logistic_data)
 
 summary(role_senior_env_model)
-role_senior_env_model
+exp(role_senior_env_model$coefficients)
+# We will try to remove the variable employement_type, as its p-value is quite high: above 0.2
+role_senior_env_model <- update(role_senior_env_model, . ~ . - employment_type)
+summary(role_senior_env_model)
+exp(role_senior_env_model$coefficients)
+exp(confint(role_senior_env_model))
+
 levels(logistic_data$role)
 levels(logistic_data$company_location)
 levels(logistic_data$employment_type)
@@ -40,14 +46,12 @@ levels(logistic_data$leadership)
 levels(logistic_data$experience_level)
 levels(logistic_data$company_size)
 
-exp(role_senior_env_model$coefficients)
-exp(confint(role_senior_env_model))
 
+saveRDS(role_senior_env_model, "logistic_top_tier_model.rds")
 # The model give that experienece level, leadership, role, company size and company location affect the odds of reaching top 25% of salary, while the employement does not affect. In those elements that affects, only the linear change (i.e. transitioning to the next larger value) significantly affect the odds.
-# As the seniority increases, the likelihood of falling into the top 25% salary bracket increases by 10.81 times
-# Being at research role multiplies the odds of falling tinto the top 25% salary bracket to almost 2 times, while being at engineering role multiplies the odds by almost 0.29
-# As the company size increases, the odds of having salaries falling into top 25% multiplies by 2.18
-# The odds of having top tier salary when working at US companies is 16.41 more than working at non-US companies.
-#
-#
-# We will try to remove the variable employement_type, as its p-value is quite high: above 0.2
+# After removal:
+# As the seniority increases, the likelihood of falling into the top 25% salary bracket increases by 10.86 times
+# Being at engineering role multiplies the odds by 6.75 times, while being at research role multiplies the odds by 5.88
+# Being at leadership would multiplies the odds by 2.43
+# As the company size increases, the odds of having salaries falling into top 25% multiplies by 2.29
+# The odds of having top tier salary when working at US companies is 16.41 times the odd when working at non-US companies.

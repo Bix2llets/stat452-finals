@@ -90,24 +90,24 @@ if (any(data$observed_salary_in_usd <= 0)) {
 # would make ordinary least-squares coefficients unstable. Remote ratio is
 # categorical because the data contain only 0, 50, and 100 and do not support a
 # linear percentage effect assumption.
+# We will predict the square root of salary_in_usd by work_year, remote ratio, company location, company size, role and leadership
+# Need confirmation from @NguyenVanLeBao
 model_data <- data |>
   transmute(
     source_row_id,
     salary_in_usd = observed_salary_in_usd,
     salary_sqrt = sqrt(observed_salary_in_usd),
     work_year = as.numeric(work_year),
-    experience_level = as.character(experience_level),
-    employment_type = as.character(employment_type_code),
-    remote_work = case_when(
+    remote_work = factor(case_when(
       remote_ratio == 0 ~ "On-site",
       remote_ratio == 50 ~ "Hybrid",
       remote_ratio == 100 ~ "Fully remote",
       .default = "Other"
-    ),
-    company_location = as.character(company_location_code),
-    company_size = as.character(company_size),
-    role = as.character(role),
-    leadership = as.character(leadership)
+    ), ordered = TRUE, labels = c("On-site", "Hybrid", "Fully remote")),
+    company_location = company_location,
+    company_size = company_size,
+    role = role,
+    leadership = leadership
   )
 
 predictor_names <- c(

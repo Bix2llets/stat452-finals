@@ -147,8 +147,10 @@ report_model <- function(model) {
 
   heteroscedastic <- bp$p.value < 0.05
   if (heteroscedastic) {
-    cat("\n*** Breusch-Pagan rejects (p =", signif(bp$p.value, 3), ").",
-      "Read the HC3 table below, not the classical one above. ***\n")
+    cat(
+      "\n*** Breusch-Pagan rejects (p =", signif(bp$p.value, 3), ").",
+      "Read the HC3 table below, not the classical one above. ***\n"
+    )
     print(Anova(model, type = 3, white.adjust = "hc3"))
   }
   invisible(heteroscedastic)
