@@ -153,9 +153,6 @@ data <- data |>
   mutate(leadership = factor(leadership, ordered = TRUE, labels = c("No", "Yes")))
 
 
-data <- (data |>
-  mutate(standardized_year = (work_year - mean(work_year)) / sqrt(var(work_year))) |>
-  mutate(standardized_remote_ratio = (remote_ratio - mean(remote_ratio)) / sqrt(var(remote_ratio))))
 
 str(data)
 saveRDS(data, "../dataset/cleaned_data.rds")
