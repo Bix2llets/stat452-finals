@@ -30,10 +30,6 @@ str(data)
 nrow(data)
 ggplot(data, aes(salary_in_usd)) +
   geom_boxplot()
-# The legacy Step 2/3 response is winsorized at the 1.5-IQR limits. The
-# untouched observed response is retained in observed_salary_in_usd and is the
-# only response used by Step 4, so the held-out outcomes are not overwritten.
-
 
 handle_outlier <- function(data) { # Handle outlier by clamping them in 1.5 IQR
   data_quantile <- quantile(data, c(0.25, 0.75))
@@ -59,18 +55,10 @@ table(data$remote_ratio)
 
 duplicate_check <- data |> dplyr::select(!source_row_id)
 nrow(duplicate_check[duplicated(duplicate_check) == TRUE, ])
-# There are 42 exact duplicate substantive records at THIS point, i.e. while
-# job_title is still present and before the unclassifiable roles are dropped.
-# Once the job titles are collapsed into `role` further down, the count on the
-# saved cleaned_data.rds rises to 45 - collapsing categories necessarily creates
-# new ties. Both numbers are correct for their stage; quote 45 when talking
-# about the data Steps 2 and 3 actually analyse.
+# There are 42 exact duplicate substantive records after removing the source_row_id.
 # We cannot tell whether they are collection duplicates or repeated
-# observations, so they remain in the descriptive data. Step 4 assigns
-# identical modeling records to the same partition to prevent train/test twins.
-# Note for Step 3: these 45 records are pseudo-replication and mildly inflate
-# every F statistic there. multi_factor_anova.R repeats this caveat.
-#
+# observations, so they remain in the descriptive data. .
+
 # Check for NA
 sum(is.na(data))
 # No NA value
@@ -164,9 +152,6 @@ data <- data |>
   mutate(role = as.factor(role)) |>
   mutate(leadership = factor(leadership, ordered = TRUE, labels = c("No", "Yes")))
 
-# Legacy full-data standardized copies retained for Steps 2/3 compatibility.
-# Step 4 explicitly excludes these columns and estimates scaling from training
-# data only.
 
 data <- (data |>
   mutate(standardized_year = (work_year - mean(work_year)) / sqrt(var(work_year))) |>
