@@ -3,23 +3,7 @@
 
 > library(dplyr)
 
-Attaching package: 'dplyr'
-
-The following objects are masked from 'package:stats':
-
-    filter, lag
-
-The following objects are masked from 'package:base':
-
-    intersect, setdiff, setequal, union
-
-
 > library(tidyr)
-
-> library(tseries)
-Registered S3 method overwritten by 'quantmod':
-  method            from
-  as.zoo.data.frame zoo 
 
 > data <- readRDS("../dataset/cleaned_data.rds")
 
@@ -43,7 +27,7 @@ Registered S3 method overwritten by 'quantmod':
  $ exercise_induced_angina  : Factor w/ 2 levels "No","Yes": 1 1 1 1 2 1 1 2 1 1 ...
  $ st_depression            : num  0.3 2.1 0.8 2.1 1.3 0.8 2.1 0.9 0.4 0.3 ...
  $ family_history           : Factor w/ 2 levels "No","Yes": 1 1 1 1 2 2 1 2 1 2 ...
- $ smoker_status            : Ord.factor w/ 3 levels "Never"<"Former"<..: 1 1 3 1 2 2 1 3 2 2 ...
+ $ smoker_status            : Factor w/ 3 levels "Never","Former",..: 1 1 3 1 2 2 1 3 2 2 ...
  $ alcohol_units_per_week   : num  2.9 3 3.5 2.7 3.3 3.3 5.1 2.5 2.8 6.1 ...
  $ exercise_minutes_per_week: int  86 132 128 18 24 190 91 92 266 89 ...
  $ sleep_hours              : num  5.4 4.3 5.1 6.8 8.2 5.9 8.2 6.4 9 9.1 ...
@@ -59,8 +43,8 @@ Registered S3 method overwritten by 'quantmod':
  $ heart_rate_reserve       : int  91 87 129 44 95 97 102 64 94 75 ...
  $ percent_predicted_max_hr : num  93.8 92 110 92.6 114.6 ...
  $ bmi_category             : Factor w/ 4 levels "Underweight",..: 3 2 2 3 3 3 3 2 2 2 ...
- $ bp_category              : Ord.factor w/ 4 levels "Normal"<"Elevated"<..: 1 4 2 3 1 2 3 3 2 2 ...
- $ glycemic_status          : Ord.factor w/ 3 levels "Normal"<"Prediabetic"<..: 1 2 1 1 2 2 1 2 2 2 ...
+ $ bp_category              : Factor w/ 4 levels "Normal","Elevated",..: 1 4 2 3 1 2 3 3 2 2 ...
+ $ glycemic_status          : Factor w/ 3 levels "Normal","Prediabetic",..: 1 2 1 1 2 2 1 2 2 2 ...
  $ age_group                : Factor w/ 4 levels "18-34","35-49",..: 2 3 1 4 3 3 3 3 3 3 ...
  $ meets_activity_guideline : Factor w/ 2 levels "No","Yes": 1 1 1 1 1 2 1 1 2 1 ...
  $ lipid_panel_consistent   : Factor w/ 2 levels "Yes","No": 1 1 1 1 1 2 1 2 1 1 ...
@@ -180,89 +164,104 @@ overall prevalence: 0.303
 > write.csv(numeric_summary, "numeric_summary_table.csv", 
 +     row.names = FALSE)
 
-> set.seed(6767)
+> gof_normal <- function(x, n_bins = 10) {
++     cut_points <- qnorm(seq(0, 1, length.out = n_bins + 1), mean = mean(x), 
++         sd = sd(x))
++     cut_points[1] <- -Inf
++     cut_points[n_bins + 1] <- Inf
++     observed <- as.numeric(table(cut(x, breaks = cut_points)))
++     expected <- rep(length(x)/n_bins, n_bins)
++     statistic <- sum((observed - expected)^2/expected)
++     degrees_of_freedom <- n_bins - 1 - 2
++     c(chisq = statistic, df = degrees_of_freedom, p_value = pchisq(statistic, 
++         degrees_of_freedom, lower.tail = FALSE))
++ }
 
-> shapiro_subsample <- sample(nrow(data), 5000)
+> gof_results <- t(sapply(data[numeric_all], gof_normal))
 
 > normality_report <- data.frame(variable = numeric_all, 
 +     skewness = round(sapply(data[numeric_all], skewness), 3), 
 +     excess_kurtosis = round(sapply(data[numeric_all], excess_kurtosis), 
-+         3), jarque_bera_p = sapply(numeric_all, function(v) {
-+         signif(jarque.bera.test(data[[v]])$p.value, 3)
-+     }), shapiro_W_n5000 = sapply(numeric_all, function(v) {
-+         round(shapiro.test(data[[v]][shapiro_subsample])$statistic, 
-+             4)
-+     }), row.names = NULL)
++         3), gof_chisq = round(gof_results[, "chisq"], 1), gof_df = gof_results[, 
++         "df"], gof_p_value = signif(gof_results[, "p_value"], 
++         3), row.names = NULL)
+
+> normality_report <- normality_report[order(normality_report$gof_chisq), 
++     ]
 
 > print(normality_report, row.names = FALSE)
-                  variable skewness excess_kurtosis jarque_bera_p
-                       age   -0.022          -0.207      2.45e-04
-       resting_bp_systolic    0.068           0.028      2.77e-02
-      resting_bp_diastolic    0.009          -0.081      2.82e-01
-         cholesterol_total    0.004          -0.029      8.47e-01
-                       hdl    0.020          -0.033      6.02e-01
-                       ldl    0.045          -0.100      3.48e-02
-             triglycerides    0.126          -0.026      6.18e-06
-       fasting_blood_sugar    0.041          -0.142      6.92e-03
-                     hba1c    0.029          -0.077      1.76e-01
-                       bmi    0.092          -0.124      1.07e-04
-        resting_heart_rate   -0.019          -0.018      7.24e-01
-   max_heart_rate_achieved   -0.185          -0.369      0.00e+00
-             st_depression    2.040           5.601      0.00e+00
-    alcohol_units_per_week    2.027           6.282      0.00e+00
- exercise_minutes_per_week    0.094          -0.231      6.84e-08
-               sleep_hours   -0.042          -0.032      2.15e-01
-              stress_score   -0.013          -0.015      8.47e-01
-               daily_steps    0.025          -0.135      2.09e-02
-        diet_quality_score    0.001          -0.078      3.23e-01
-            pulse_pressure    0.021           0.002      7.22e-01
-       non_hdl_cholesterol    0.012          -0.032      7.49e-01
-     cholesterol_hdl_ratio    1.409           4.253      0.00e+00
-        heart_rate_reserve   -0.191          -0.291      0.00e+00
-  percent_predicted_max_hr   -0.233          -0.011      0.00e+00
- shapiro_W_n5000
-          0.9981
-          0.9986
-          0.9987
-          0.9995
-          0.9990
-          0.9983
-          0.9960
-          0.9988
-          0.9970
-          0.9975
-          0.9986
-          0.9940
-          0.8110
-          0.8158
-          0.9966
-          0.9987
-          0.9995
-          0.9988
-          0.9993
-          0.9983
-          0.9994
-          0.9154
-          0.9958
-          0.9957
+                  variable skewness excess_kurtosis gof_chisq gof_df
+              stress_score   -0.013          -0.015       6.6      7
+        diet_quality_score    0.001          -0.078       6.7      7
+                       bmi    0.092          -0.124      10.4      7
+         cholesterol_total    0.004          -0.029      11.9      7
+ exercise_minutes_per_week    0.094          -0.231      13.4      7
+               daily_steps    0.025          -0.135      13.4      7
+       non_hdl_cholesterol    0.012          -0.032      13.6      7
+                       ldl    0.045          -0.100      20.6      7
+             triglycerides    0.126          -0.026      22.8      7
+       fasting_blood_sugar    0.041          -0.142      28.4      7
+       resting_bp_systolic    0.068           0.028      81.3      7
+  percent_predicted_max_hr   -0.233          -0.011      83.7      7
+                       hdl    0.020          -0.033      86.1      7
+   max_heart_rate_achieved   -0.185          -0.369      95.6      7
+        heart_rate_reserve   -0.191          -0.291      97.1      7
+               sleep_hours   -0.042          -0.032     116.5      7
+      resting_bp_diastolic    0.009          -0.081     136.2      7
+                       age   -0.022          -0.207     169.4      7
+            pulse_pressure    0.021           0.002     177.1      7
+                     hba1c    0.029          -0.077     258.3      7
+        resting_heart_rate   -0.019          -0.018     285.3      7
+     cholesterol_hdl_ratio    1.409           4.253     767.9      7
+             st_depression    2.040           5.601    3340.6      7
+    alcohol_units_per_week    2.027           6.282    3744.4      7
+ gof_p_value
+    4.71e-01
+    4.65e-01
+    1.67e-01
+    1.04e-01
+    6.30e-02
+    6.22e-02
+    5.91e-02
+    4.48e-03
+    1.83e-03
+    1.86e-04
+    7.43e-15
+    2.41e-15
+    7.78e-16
+    8.63e-18
+    4.24e-18
+    4.11e-22
+    3.22e-26
+    3.32e-33
+    7.93e-35
+    4.65e-52
+    8.46e-58
+   1.57e-161
+    0.00e+00
+    0.00e+00
 
 > write.csv(normality_report, "normality_report.csv", 
 +     row.names = FALSE)
 
+> critical_value <- qchisq(0.95, df = 7)
+
+> cat("5% critical value on 7 df:", round(critical_value, 
++     2), "\n")
+5% critical value on 7 df: 14.07 
+
+> cat("variables exceeding it:", sum(normality_report$gof_chisq > 
++     critical_value), "of", length(numeric_all), "\n")
+variables exceeding it: 17 of 24 
+
 > long_numeric <- pivot_longer(select(data, all_of(numeric_all)), 
 +     everything(), names_to = "variable", values_to = "value")
-
-> pdf("numeric_histograms.pdf", width = 12, height = 8)
 
 > ggplot(long_numeric, aes(value)) + geom_histogram(bins = 40) + 
 +     facet_wrap(~variable, scales = "free") + labs(title = "Distribution of each numerical variable", 
 +     x = NULL, y = "Number of patients") + theme_classic()
 
-> dev.off()
-null device 
-          1 
-
-> pdf("numeric_qq.pdf", width = 12, height = 8)
+> ggsave("numeric_histograms.pdf", width = 14, height = 10)
 
 > ggplot(long_numeric, aes(sample = value)) + stat_qq(size = 0.3) + 
 +     stat_qq_line(colour = "red") + facet_wrap(~variable, scales = "free") + 
@@ -270,42 +269,56 @@ null device
 +         x = "Theoretical quantiles", y = "Observed value") + 
 +     theme_classic()
 
-> dev.off()
-null device 
-          1 
-
-> pdf("skewed_variables_transformed.pdf", width = 10, 
-+     height = 6)
+> ggsave("numeric_qq.pdf", width = 14, height = 10)
 
 > ggplot(mutate(pivot_longer(transmute(data, alcohol_units_per_week = alcohol_units_per_week, 
 +     `log(1 + alcohol)` = log1p(alcohol_units_per_week), cholesterol_hdl_ratio = cholesterol_hdl_ratio, 
 +     `log(cholesterol_hdl_ratio)` = log(cholesterol_hdl_ratio), 
-+     st_depression = st_depression, `sqrt(st_depression)` = sqrt(st_depression)), 
++     st_depression = st_depression, `st_depression^(1/3)` = st_depression^(1/3)), 
 +     everything(), names_to = "variable", values_to = "value"), 
 +     variable = factor(variable, levels = c("alcohol_units_per_week", 
 +         "log(1 + alcohol)", "cholesterol_hdl_ratio", "log(cholesterol_hdl_ratio)", 
-+         "st_depression", "sqrt(st_depression)"))), aes(value)) + 
++         "st_depression", "st_depression^(1/3)"))), aes(value)) + 
 +     geom_histogram(bins = 40) + facet_wrap(~variable, scales = "free", 
 +     nrow = 3) + labs(title = "The three right-skewed variables, before and after a transformation", 
 +     x = NULL, y = "Number of patients") + theme_classic()
 
-> dev.off()
-null device 
-          1 
+> ggsave("skewed_variables_transformed.pdf", width = 10, 
++     height = 9)
 
-> cat("skewness alcohol raw / log1p:", round(skewness(data$alcohol_units_per_week), 
-+     3), "/", round(skewness(log1p(data$alcohol_units_per_week)), 
+> transformation_report <- do.call(rbind, lapply(c("alcohol_units_per_week", 
++     "cholesterol_hdl_ratio", "st_depression"), function(v) {
++     x <- data[[v]]
++     data.frame(variable = v, has_zeros = any(x == 0), raw = round(skewness(x), 
++         3), sqrt = round(skewness(sqrt(x)), 3), cube_root = round(skewness(x^(1/3)), 
++         3), log = if (any(x == 0)) 
++         NA
++     else round(skewness(log(x)), 3), log1p = round(skewness(log1p(x)), 
++         3))
++ }))
+
+> print(transformation_report, row.names = FALSE)
+               variable has_zeros   raw  sqrt cube_root   log log1p
+ alcohol_units_per_week      TRUE 2.027 0.666     0.152    NA 0.021
+  cholesterol_hdl_ratio     FALSE 1.409 0.814     0.642 0.323 0.518
+          st_depression      TRUE 2.040 0.652    -0.054    NA 0.775
+
+> cat("st_depression: patients at exactly 0 =", sum(data$st_depression == 
++     0), sprintf("(%.1f%%)", 100 * mean(data$st_depression == 
++     0)), "\n")
+st_depression: patients at exactly 0 = 193 (2.1%) 
+
+> cat("  skewness of the whole column          :", round(skewness(data$st_depression), 
 +     3), "\n")
-skewness alcohol raw / log1p: 2.027 / 0.021 
+  skewness of the whole column          : 2.04 
 
-> cat("skewness chol/HDL ratio raw / log:", round(skewness(data$cholesterol_hdl_ratio), 
-+     3), "/", round(skewness(log(data$cholesterol_hdl_ratio)), 
-+     3), "\n")
-skewness chol/HDL ratio raw / log: 1.409 / 0.323 
+> cat("  skewness with the zeros excluded      :", round(skewness(data$st_depression[data$st_depression > 
++     0]), 3), "\n")
+  skewness with the zeros excluded      : 2.051 
 
-> cat("skewness st_depression raw / sqrt:", round(skewness(data$st_depression), 
-+     3), "/", round(skewness(sqrt(data$st_depression)), 3), "\n")
-skewness st_depression raw / sqrt: 2.04 / 0.652 
+> cat("skewness triglycerides raw / log:", round(skewness(data$triglycerides), 
++     3), "/", round(skewness(log(data$triglycerides)), 3), "\n")
+skewness triglycerides raw / log: 0.126 / -1.092 
 
 > for (v in categorical_all) {
 +     cat("\n---", v, "---\n")
@@ -451,18 +464,15 @@ Hypertension stage 2
 > write.csv(categorical_summary, "categorical_summary_table.csv", 
 +     row.names = FALSE)
 
-> pdf("categorical_distributions.pdf", width = 11, height = 7)
-
 > ggplot(categorical_summary, aes(x = level, y = percent)) + 
 +     geom_col() + facet_wrap(~variable, scales = "free_x") + labs(title = "Composition of the sample on each categorical variable", 
 +     x = NULL, y = "Percent of patients") + theme_classic() + 
 +     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 
-> dev.off()
-null device 
-          1 
+> ggsave("categorical_distributions.pdf", width = 12, 
++     height = 8)
 
-> cohens_d <- function(x, group) {
+> standardised_mean_difference <- function(x, group) {
 +     x1 <- x[group == "Yes"]
 +     x0 <- x[group == "No"]
 +     n1 <- length(x1)
@@ -480,11 +490,11 @@ null device
 +             "No"]), 2), sd_no_disease = round(sd(x[g == "No"]), 
 +             2), mean_disease = round(mean(x[g == "Yes"]), 2), 
 +             sd_disease = round(sd(x[g == "Yes"]), 2), difference = round(mean(x[g == 
-+                 "Yes"]) - mean(x[g == "No"]), 2), cohens_d = round(cohens_d(x, 
++                 "Yes"]) - mean(x[g == "No"]), 2), std_mean_difference = round(standardised_mean_difference(x, 
 +                 g), 3))
 +     }))
 
-> outcome_comparison <- outcome_comparison[order(-abs(outcome_comparison$cohens_d)), 
+> outcome_comparison <- outcome_comparison[order(-abs(outcome_comparison$std_mean_difference)), 
 +     ]
 
 > print(outcome_comparison, row.names = FALSE)
@@ -513,37 +523,34 @@ null device
               stress_score           46.92         16.05        50.37
                sleep_hours            7.03          1.08         6.91
     alcohol_units_per_week            5.57          4.99         6.03
- sd_disease difference cohens_d
-       7.68     -11.57   -1.577
-      17.18     -26.90   -1.552
-      19.47     -30.05   -1.537
-       1.27       0.74    0.831
-       1.09       0.75    0.817
-      12.16       8.24    0.662
-      29.45      18.55    0.621
-      26.13      15.89    0.603
-      12.02      -6.78   -0.565
-      13.45       7.46    0.560
-      60.33     -34.42   -0.558
-       0.66       0.34    0.504
-       4.25       2.03    0.475
-      21.80      10.03    0.450
-      10.69       4.60    0.428
-       8.37       3.15    0.371
-      31.67      11.76    0.370
-      14.56      -4.89   -0.342
-    2106.76    -721.96   -0.337
-       8.91       2.87    0.328
-      51.98      12.35    0.242
-      16.17       3.45    0.214
-       1.16      -0.12   -0.108
-       5.25       0.46    0.090
+ sd_disease difference std_mean_difference
+       7.68     -11.57              -1.577
+      17.18     -26.90              -1.552
+      19.47     -30.05              -1.537
+       1.27       0.74               0.831
+       1.09       0.75               0.817
+      12.16       8.24               0.662
+      29.45      18.55               0.621
+      26.13      15.89               0.603
+      12.02      -6.78              -0.565
+      13.45       7.46               0.560
+      60.33     -34.42              -0.558
+       0.66       0.34               0.504
+       4.25       2.03               0.475
+      21.80      10.03               0.450
+      10.69       4.60               0.428
+       8.37       3.15               0.371
+      31.67      11.76               0.370
+      14.56      -4.89              -0.342
+    2106.76    -721.96              -0.337
+       8.91       2.87               0.328
+      51.98      12.35               0.242
+      16.17       3.45               0.214
+       1.16      -0.12              -0.108
+       5.25       0.46               0.090
 
 > write.csv(outcome_comparison, "numeric_by_outcome_table.csv", 
 +     row.names = FALSE)
-
-> pdf("numeric_by_outcome_boxplots.pdf", width = 12, 
-+     height = 8)
 
 > ggplot(pivot_longer(select(data, all_of(numeric_all), 
 +     has_heart_disease), -has_heart_disease, names_to = "variable", 
@@ -552,27 +559,60 @@ null device
 +     labs(title = "Each numerical variable by diagnosis", x = "Diagnosed with heart disease", 
 +         y = NULL) + theme_classic()
 
-> dev.off()
-null device 
-          1 
-
-> pdf("top_predictors_density.pdf", width = 10, height = 7)
+> ggsave("numeric_by_outcome_boxplots.pdf", width = 14, 
++     height = 10)
 
 > ggplot(pivot_longer(select(data, max_heart_rate_achieved, 
 +     st_depression, age, cholesterol_hdl_ratio, has_heart_disease), 
 +     -has_heart_disease, names_to = "variable", values_to = "value"), 
-+     aes(value, fill = has_heart_disease)) + geom_density(alpha = 0.45) + 
-+     facet_wrap(~variable, scales = "free") + labs(title = "The four most separating variables, by diagnosis", 
-+     x = NULL, y = "Density", fill = "Heart disease") + theme_classic()
++     aes(value, fill = has_heart_disease)) + geom_histogram(bins = 40, 
++     position = "identity", alpha = 0.55) + facet_wrap(~variable, 
++     scales = "free") + labs(title = "The four most separating variables, by diagnosis", 
++     subtitle = "Patient counts, so the two groups appear at their true relative size", 
++     x = NULL, y = "Number of patients", fill = "Heart disease") + 
++     theme_classic()
 
-> dev.off()
-null device 
-          1 
+> ggsave("top_predictors_histograms.pdf", width = 10, 
++     height = 8)
 
-> cramers_v <- function(x, y) {
-+     tab <- table(x, y)
-+     chi_squared <- suppressWarnings(chisq.test(tab)$statistic)
-+     sqrt(chi_squared/(sum(tab) * (min(dim(tab)) - 1)))
+> top_four <- c("max_heart_rate_achieved", "st_depression", 
++     "age", "cholesterol_hdl_ratio")
+
+> overlap_table <- do.call(rbind, lapply(top_four, function(v) {
++     x <- data[[v]]
++     g <- data$has_heart_disease
++     range_no <- quantile(x[g == "No"], c(0.05, 0.95))
++     range_yes <- quantile(x[g == "Yes"], c(0.05, 0.95))
++     data.frame(variable = v, diseased_inside_healthy_range = round(mean(x[g == 
++         "Yes"] >= range_no[1] & x[g == "Yes"] <= range_no[2]), 
++         3), healthy_inside_diseased_range = round(mean(x[g == 
++         "No"] >= range_yes[1] & x[g == "No"] <= range_yes[2]), 
++         3))
++ }))
+
+> print(overlap_table, row.names = FALSE)
+                variable diseased_inside_healthy_range
+ max_heart_rate_achieved                         0.556
+           st_depression                         0.754
+                     age                         0.854
+   cholesterol_hdl_ratio                         0.789
+ healthy_inside_diseased_range
+                         0.549
+                         0.886
+                         0.817
+                         0.780
+
+> risk_summary <- function(v) {
++     rates <- tapply(data$has_heart_disease_num, data[[v]], mean)
++     lowest <- names(which.min(rates))
++     highest <- names(which.max(rates))
++     p_low <- min(rates)
++     p_high <- max(rates)
++     data.frame(variable = v, n_levels = length(rates), safest_level = lowest, 
++         rate_safest = round(p_low, 3), riskiest_level = highest, 
++         rate_riskiest = round(p_high, 3), risk_difference = round(p_high - 
++             p_low, 3), odds_ratio = round((p_high/(1 - p_high))/(p_low/(1 - 
++             p_low)), 2))
 + }
 
 > rate_by_level <- do.call(rbind, lapply(categorical_all, 
@@ -621,32 +661,56 @@ null device
 > write.csv(rate_by_level, "categorical_by_outcome_table.csv", 
 +     row.names = FALSE)
 
-> association_strength <- data.frame(variable = categorical_all, 
-+     cramers_v = round(sapply(categorical_all, function(v) {
-+         cramers_v(data[[v]], data$has_heart_disease)
-+     }), 3), row.names = NULL)
+> association_strength <- do.call(rbind, lapply(categorical_all, 
++     risk_summary))
 
-> association_strength <- association_strength[order(-association_strength$cramers_v), 
+> association_strength <- association_strength[order(-association_strength$risk_difference), 
 +     ]
 
 > print(association_strength, row.names = FALSE)
-                 variable cramers_v
-  exercise_induced_angina     0.445
-                age_group     0.281
-              bp_category     0.214
-          glycemic_status     0.199
-             bmi_category     0.198
- meets_activity_guideline     0.194
-            smoker_status     0.168
-          chest_pain_type     0.158
-                      sex     0.116
-           wearable_owner     0.094
-           family_history     0.070
+                 variable n_levels safest_level rate_safest
+  exercise_induced_angina        2           No       0.191
+                age_group        4        18-34       0.095
+             bmi_category        4  Underweight       0.158
+              bp_category        4       Normal       0.170
+          glycemic_status        3       Normal       0.207
+          chest_pain_type        4 Asymptomatic       0.254
+            smoker_status        3        Never       0.252
+ meets_activity_guideline        2          Yes       0.201
+                      sex        2       Female       0.247
+           wearable_owner        2          Yes       0.254
+           family_history        2           No       0.283
+       riskiest_level rate_riskiest risk_difference odds_ratio
+                  Yes         0.678           0.487       8.91
+                  65+         0.511           0.416      10.00
+                Obese         0.472           0.313       4.75
+ Hypertension stage 2         0.439           0.269       3.82
+             Diabetic         0.456           0.249       3.21
+       Typical Angina         0.479           0.225       2.71
+              Current         0.464           0.212       2.57
+                   No         0.381           0.180       2.45
+                 Male         0.354           0.107       1.67
+                   No         0.342           0.088       1.52
+                  Yes         0.356           0.073       1.40
 
 > write.csv(association_strength, "categorical_association_strength.csv", 
 +     row.names = FALSE)
 
-> pdf("disease_rate_by_category.pdf", width = 12, height = 8)
+> for (v in c("age_group", "bp_category", "glycemic_status", 
++     "smoker_status")) {
++     cat("\n", v, ": ", sep = "")
++     cat(paste0(levels(data[[v]]), " ", round(100 * tapply(data$has_heart_disease_num, 
++         data[[v]], mean), 1), "%"), sep = " -> ")
++     cat("\n")
++ }
+
+age_group: 18-34 9.5% -> 35-49 18% -> 50-64 31.9% -> 65+ 51.1%
+
+bp_category: Normal 17% -> Elevated 25.3% -> Hypertension stage 1 30.4% -> Hypertension stage 2 43.9%
+
+glycemic_status: Normal 20.7% -> Prediabetic 33.7% -> Diabetic 45.6%
+
+smoker_status: Never 25.2% -> Former 30.3% -> Current 46.4%
 
 > ggplot(rate_by_level, aes(x = level, y = disease_rate)) + 
 +     geom_col() + geom_hline(yintercept = prevalence, linetype = "dashed", 
@@ -655,9 +719,8 @@ null device
 +         x = NULL, y = "Proportion diagnosed") + theme_classic() + 
 +     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 
-> dev.off()
-null device 
-          1 
+> ggsave("disease_rate_by_category.pdf", width = 12, 
++     height = 8)
 
 > correlation_matrix <- cor(data[numeric_all])
 
@@ -888,9 +951,15 @@ cholesterol_hdl_ratio                        -0.22
 heart_rate_reserve                            0.76
 percent_predicted_max_hr                      1.00
 
-> variable_order <- numeric_all[hclust(as.dist(1 - abs(correlation_matrix)))$order]
+> variable_order <- c("resting_bp_systolic", "resting_bp_diastolic", 
++     "pulse_pressure", "cholesterol_total", "ldl", "non_hdl_cholesterol", 
++     "cholesterol_hdl_ratio", "hdl", "triglycerides", "fasting_blood_sugar", 
++     "hba1c", "age", "max_heart_rate_achieved", "heart_rate_reserve", 
++     "percent_predicted_max_hr", "resting_heart_rate", "st_depression", 
++     "bmi", "exercise_minutes_per_week", "daily_steps", "diet_quality_score", 
++     "alcohol_units_per_week", "sleep_hours", "stress_score")
 
-> pdf("correlation_heatmap.pdf", width = 10, height = 9)
+> stopifnot(setequal(variable_order, numeric_all))
 
 > ggplot(mutate(setNames(as.data.frame(as.table(correlation_matrix)), 
 +     c("row_variable", "column_variable", "correlation")), row_variable = factor(row_variable, 
@@ -902,23 +971,32 @@ percent_predicted_max_hr                      1.00
 +     x = NULL, y = NULL) + theme_classic() + theme(axis.text.x = element_text(angle = 45, 
 +     hjust = 1))
 
-> dev.off()
-null device 
-          1 
-
-> pdf("age_relationships.pdf", width = 10, height = 7)
+> ggsave("correlation_heatmap.pdf", width = 10, height = 9)
 
 > ggplot(pivot_longer(select(data, age, max_heart_rate_achieved, 
 +     resting_bp_systolic, ldl, hba1c), -age, names_to = "variable", 
 +     values_to = "value"), aes(age, value)) + geom_point(alpha = 0.06, 
-+     size = 0.5) + geom_smooth(method = "loess", formula = y ~ 
-+     x, se = FALSE, colour = "red") + facet_wrap(~variable, scales = "free_y") + 
-+     labs(title = "How age moves the other measurements", x = "Age (years)", 
-+         y = NULL) + theme_classic()
++     size = 0.5) + geom_smooth(method = "lm", formula = y ~ x, 
++     se = FALSE, aes(colour = "linear: y ~ age")) + geom_smooth(method = "lm", 
++     formula = y ~ poly(x, 2), se = FALSE, aes(colour = "quadratic: y ~ age + age^2")) + 
++     scale_colour_manual(values = c(`linear: y ~ age` = "red", 
++         `quadratic: y ~ age + age^2` = "blue")) + facet_wrap(~variable, 
++     scales = "free_y") + labs(title = "How age moves the other measurements", 
++     x = "Age (years)", y = NULL, colour = NULL) + theme_classic() + 
++     theme(legend.position = "bottom")
 
-> dev.off()
-null device 
-          1 
+> ggsave("age_relationships.pdf", width = 9, height = 7)
+
+> for (v in c("max_heart_rate_achieved", "resting_bp_systolic", 
++     "ldl", "hba1c")) {
++     fit <- lm(data[[v]] ~ data$age)
++     cat(sprintf("%-24s slope %+8.3f per year   R^2 %.3f\n", v, 
++         coef(fit)[2], summary(fit)$r.squared))
++ }
+max_heart_rate_achieved  slope   -1.196 per year   R^2 0.534
+resting_bp_systolic      slope   +0.442 per year   R^2 0.175
+ldl                      slope   +0.341 per year   R^2 0.026
+hba1c                    slope   +0.008 per year   R^2 0.024
 
 > table(data$wearable_owner, data$has_heart_disease)
      
@@ -979,7 +1057,3 @@ max_heart_rate_achieved           triglycerides                     bmi
                    1.28                    1.27                    0.91 
                   hba1c                     ldl 
                    0.71                    0.62 
-Warning messages:
-1: package 'dplyr' was built under R version 4.6.1 
-2: package 'tidyr' was built under R version 4.6.1 
-3: package 'tseries' was built under R version 4.6.1 

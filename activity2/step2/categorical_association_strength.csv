@@ -1,12 +1,12 @@
-"variable","cramers_v"
-"exercise_induced_angina",0.445
-"age_group",0.281
-"bp_category",0.214
-"glycemic_status",0.199
-"bmi_category",0.198
-"meets_activity_guideline",0.194
-"smoker_status",0.168
-"chest_pain_type",0.158
-"sex",0.116
-"wearable_owner",0.094
-"family_history",0.07
+"variable","n_levels","safest_level","rate_safest","riskiest_level","rate_riskiest","risk_difference","odds_ratio"
+"exercise_induced_angina",2,"No",0.191,"Yes",0.678,0.487,8.91
+"age_group",4,"18-34",0.095,"65+",0.511,0.416,10
+"bmi_category",4,"Underweight",0.158,"Obese",0.472,0.313,4.75
+"bp_category",4,"Normal",0.17,"Hypertension stage 2",0.439,0.269,3.82
+"glycemic_status",3,"Normal",0.207,"Diabetic",0.456,0.249,3.21
+"chest_pain_type",4,"Asymptomatic",0.254,"Typical Angina",0.479,0.225,2.71
+"smoker_status",3,"Never",0.252,"Current",0.464,0.212,2.57
+"meets_activity_guideline",2,"Yes",0.201,"No",0.381,0.18,2.45
+"sex",2,"Female",0.247,"Male",0.354,0.107,1.67
+"wearable_owner",2,"Yes",0.254,"No",0.342,0.088,1.52
+"family_history",2,"No",0.283,"Yes",0.356,0.073,1.4

@@ -1,4 +1,4 @@
-"variable","mean_no_disease","sd_no_disease","mean_disease","sd_disease","difference","cohens_d"
+"variable","mean_no_disease","sd_no_disease","mean_disease","sd_disease","difference","std_mean_difference"
 "percent_predicted_max_hr",102.66,7.18,91.09,7.68,-11.57,-1.577
 "max_heart_rate_achieved",172.99,17.4,146.09,17.18,-26.9,-1.552
 "heart_rate_reserve",93.03,19.58,62.98,19.47,-30.05,-1.537

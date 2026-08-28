@@ -121,8 +121,11 @@ range_report
 sum(raw$resting_bp_systolic <= raw$resting_bp_diastolic) # 0
 sum(raw$max_heart_rate_achieved <= raw$resting_heart_rate) # 0
 
-# Total cholesterol is HDL + LDL + 0.2 * VLDL, so HDL + LDL can never reach the
-# total. 106 patients (1.2 %) break that rule.
+# The Friedewald relationship says a lipid panel is internally consistent when
+#     total cholesterol = HDL + LDL + VLDL,   with VLDL estimated by
+#     VLDL = triglycerides / 5 (mg/dL).
+# VLDL is strictly positive, so HDL + LDL can never reach the total.
+# 106 patients (1.2 %) break that rule.
 lipid_overshoot <- raw$hdl + raw$ldl - raw$cholesterol_total
 sum(lipid_overshoot >= 0)
 summary(lipid_overshoot[lipid_overshoot >= 0])
@@ -135,20 +138,50 @@ summary(lipid_overshoot[lipid_overshoot >= 0])
 
 friedewald_gap <- raw$cholesterol_total -
   (raw$hdl + raw$ldl + raw$triglycerides / 5)
-sd(friedewald_gap)
-ggplot(df, aes(x = gap)) +
+summary(friedewald_gap)
+sd(friedewald_gap) # 8.04 mg/dL
+
+# The gap is centred on zero with a standard deviation of 8 mg/dL. To show that
+# this residual is only rounding noise and not a systematic defect, we plot its
+# histogram against the normal curve with the same mean and standard deviation,
+# and add the matching normal Q-Q plot.
+
+gap_data <- data.frame(friedewald_gap = friedewald_gap)
+
+gap_histogram <- ggplot(gap_data, aes(x = friedewald_gap)) +
   geom_histogram(aes(y = after_stat(density)),
     fill = "steelblue", color = "white", bins = 30
   ) +
-  # Add the density curve
-  geom_density(color = "darkred", linewidth = 2) +
+  stat_function(
+    fun = dnorm,
+    args = list(mean = mean(friedewald_gap), sd = sd(friedewald_gap)),
+    color = "darkred", linewidth = 1
+  ) +
   theme_minimal() +
   labs(
-    title = "Friedewald Gap with Density Curve",
-    x = "Friedewald Gap (mg/dL)",
+    title = "Friedewald gap against the fitted normal curve",
+    subtitle = paste0(
+      "mean = ", round(mean(friedewald_gap), 2),
+      " mg/dL, sd = ", round(sd(friedewald_gap), 2), " mg/dL"
+    ),
+    x = "Total cholesterol - (HDL + LDL + triglycerides / 5), mg/dL",
     y = "Density"
   )
-# The distribution of total cholesterol is around the empirical formula for calculating it, suggesting the error is random and normal
+ggsave("friedewald_gap.pdf", gap_histogram, width = 7, height = 5)
+
+gap_qq <- ggplot(gap_data, aes(sample = friedewald_gap)) +
+  stat_qq() +
+  stat_qq_line(color = "darkred") +
+  theme_minimal() +
+  labs(
+    title = "Normal Q-Q plot of the Friedewald gap",
+    x = "Theoretical normal quantile", y = "Observed gap (mg/dL)"
+  )
+ggsave("friedewald_gap_qq.pdf", gap_qq, width = 6, height = 5)
+
+# The histogram sits on the fitted normal curve and the Q-Q points follow the
+# reference line, so the departure from the Friedewald identity is symmetric
+# rounding error rather than a mistake in the lipid columns.
 
 # Apart from that rounding, the lipid panel obeys the Friedewald relationship
 #     total cholesterol ~ HDL + LDL + triglycerides / 5
@@ -201,8 +234,12 @@ count_iqr_outliers <- function(x) {
 }
 sapply(raw[numeric_raw], count_iqr_outliers)
 
-# The counts are small relative to 9,000 rows and every flagged value survived
-# the range and contradiction checks above, so all rows are retained.
+# The counts run from 0 to 485 per column (5.4 % of the rows at worst, for
+# st_depression, and 431 for alcohol_units_per_week). Both of those are
+# right-skewed variables with a large group of patients at zero, so the 1.5 IQR
+# fence is not a meaningful cut-off for them - it flags the whole upper tail of
+# a skewed distribution, not a set of errors. Every flagged value survived the
+# range and contradiction checks above, so all rows are retained.
 
 raw |>
   select(all_of(numeric_raw)) |>
@@ -215,7 +252,7 @@ raw |>
     y = "Observed value"
   ) +
   theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
-ggsave("numeric_boxplots.pdf")
+ggsave("numeric_boxplots.pdf", width = 11, height = 7)
 
 # ---------------------------------------------------------------------------
 # 3. Giving the columns their correct type
@@ -224,25 +261,42 @@ ggsave("numeric_boxplots.pdf")
 # as arbitrary strings. We convert them to factors and fix the reference level
 # of each one to the group the interpretation should be relative to (the
 # healthy or unexposed group), so the coefficients in Step 3 read naturally.
+#
+# Every factor here is an UNORDERED factor, even where the levels have a
+# natural order (Never < Former < Current, Normal < Elevated < ...). The level
+# order is still declared, so tables and plots come out in the right sequence,
+# but R is told not to treat the variable as ordinal. The reason is the coding
+# used inside a model: an unordered factor with k levels enters lm / glm / aov
+# as k - 1 dummy (indicator) variables against the reference level, which is
+# the coding this course teaches for categorical predictors. An ordered factor
+# would instead be expanded into orthogonal polynomial contrasts (.L, .Q, .C),
+# a coding the course does not cover, and its coefficients would no longer read
+# as "this level versus the reference level".
 
 data <- raw |>
   mutate(
     patient_id = as.character(patient_id),
     sex = factor(sex, levels = c("Female", "Male")),
-    # For chest pain type, they are sorted in order of satisfying 0, 1, 2 and 3 criterions
-    #
+    # Chest pain is a nominal description of the symptom, not a scale: the four
+    # labels record which of the three classic angina criteria the pain met
+    # (substernal location, brought on by exertion, relieved by rest), and
+    # "Asymptomatic" is not one end of a ruler that "Typical Angina" is at the
+    # other end of. The levels are listed with Asymptomatic first only so that
+    # it becomes the reference level of the dummy coding.
     chest_pain_type = factor(
       chest_pain_type,
       levels = c(
         "Asymptomatic", "Non-Anginal Pain",
         "Atypical Angina", "Typical Angina"
-      ), ordered = TRUE
+      )
     ),
-    # Never < Former < Current is a genuine ordering of tobacco exposure, so
-    # smoking is stored as an ordered factor.
+    # Never < Former < Current is a genuine ordering of tobacco exposure, and
+    # the levels are declared in that order so summaries read correctly. It is
+    # still an unordered factor, so that Step 3 gets one dummy for "Former" and
+    # one for "Current", both relative to "Never".
     smoker_status = factor(
       smoker_status,
-      levels = c("Never", "Former", "Current"), ordered = TRUE
+      levels = c("Never", "Former", "Current")
     ),
     exercise_induced_angina = factor(
       exercise_induced_angina,
@@ -282,13 +336,17 @@ data <- data |>
     # and is itself a recognised cardiovascular risk marker.
     pulse_pressure = resting_bp_systolic - resting_bp_diastolic,
 
-    # Everything in the lipid panel except HDL, i.e. the "bad" cholesterol in
-    # one number. Using this instead of cholesterol_total + ldl + triglycerides
-    # avoids the near linear dependency found in Section 2.5.
-    # NOTE: This require further clarification
+    # Everything in the lipid panel except HDL, i.e. the "bad" cholesterol
+    # (LDL + VLDL) in one number. By the Friedewald identity checked in
+    # Section 2.5, total - HDL is exactly ldl + triglycerides / 5 up to the
+    # rounding of the panel, so this single column carries what the three
+    # near-collinear columns cholesterol_total, ldl and triglycerides carry
+    # between them, without the linear dependency.
     non_hdl_cholesterol = cholesterol_total - hdl,
+    # Total / HDL. Reported by laboratories as the atherogenic index; it
+    # summarises the balance between the two halves of the panel rather than
+    # their level.
     cholesterol_hdl_ratio = round(cholesterol_total / hdl, 3),
-
 
     # How far the heart rate can rise between rest and peak effort. This is the
     # informative combination of the two heart-rate columns.
@@ -296,23 +354,36 @@ data <- data |>
 
     # Age drives the maximum achievable heart rate (r = -0.73 with
     # max_heart_rate_achieved). Expressing the measured peak as a percentage of
-    # the age-predicted maximum 220 - age gives an age-free measure of effort
-    # tolerance.
-    # NOTE: This require further clarification on the formula
+    # the age-predicted maximum gives an age-free measure of effort tolerance;
+    # after this rescaling the correlation with age falls to -0.18.
+    #
+    # The predicted maximum is 220 - age, the formula of Fox, Naughton & Haskell
+    # (1971) that stress-test reports still print. It is a population average
+    # with a standard deviation of about 10 bpm, and it is known to overstate
+    # the maximum for the young and understate it for the old; the alternative
+    # 208 - 0.7 * age (Tanaka, Monahan & Seals, 2001) corrects that. We keep
+    # 220 - age because it is the convention the source of this dataset follows,
+    # and because the two give the same ranking of patients within an age band.
     percent_predicted_max_hr = round(
       100 * max_heart_rate_achieved / (220 - age), 2
     ),
 
-    # Standard WHO categories, used for the grouped summaries in Step 2.
+    # WHO adult BMI categories: underweight < 18.5, normal 18.5-24.9,
+    # overweight 25.0-29.9, obese >= 30.0 kg/m2 (WHO, Obesity: preventing and
+    # managing the global epidemic, Technical Report Series 894, 2000). Used
+    # for the grouped summaries in Step 2.
     bmi_category = cut(
       bmi,
       breaks = c(-Inf, 18.5, 25, 30, Inf),
       labels = c("Underweight", "Normal", "Overweight", "Obese"),
       right = FALSE
     ),
-    # ACC / AHA blood-pressure stages; a patient is placed in the higher stage
-    # of the one their systolic and diastolic readings imply.
-    # NOTE: Require source for the thresholds
+    # Blood-pressure stages from the 2017 ACC/AHA guideline (Whelton et al.,
+    # Hypertension 71(6), 2018): normal < 120 and < 80; elevated 120-129 and
+    # < 80; stage 1 130-139 or 80-89; stage 2 >= 140 or >= 90 mmHg. The
+    # guideline places a patient in the higher of the two stages their systolic
+    # and diastolic readings imply, which is what testing the stages from the
+    # top down does here.
     bp_category = factor(
       case_when(
         resting_bp_systolic >= 140 | resting_bp_diastolic >= 90 ~ "Hypertension stage 2",
@@ -320,18 +391,18 @@ data <- data |>
         resting_bp_systolic >= 120 ~ "Elevated",
         .default = "Normal"
       ),
-      levels = c("Normal", "Elevated", "Hypertension stage 1", "Hypertension stage 2"),
-      ordered = TRUE
+      levels = c("Normal", "Elevated", "Hypertension stage 1", "Hypertension stage 2")
     ),
-    # HbA1c thresholds for prediabetes (5.7 %) and diabetes (6.5 %).
-    # NOTE: Requrie source for the thresholds
+    # HbA1c thresholds for prediabetes (5.7-6.4 %) and diabetes (>= 6.5 %),
+    # from the American Diabetes Association Standards of Care, Section 2
+    # (Classification and Diagnosis of Diabetes).
     glycemic_status = factor(
       case_when(
         hba1c >= 6.5 ~ "Diabetic",
         hba1c >= 5.7 ~ "Prediabetic",
         .default = "Normal"
       ),
-      levels = c("Normal", "Prediabetic", "Diabetic"), ordered = TRUE
+      levels = c("Normal", "Prediabetic", "Diabetic")
     ),
     age_group = cut(
       age,
@@ -361,6 +432,10 @@ table(data$lipid_panel_consistent)
 
 str(data)
 summary(data)
+
+# No factor must have been left as an ordered factor, otherwise Step 3 would
+# silently fit polynomial contrasts instead of dummy variables.
+sapply(data[sapply(data, is.factor)], is.ordered) # all FALSE
 
 # The derived columns must not have introduced anything impossible.
 sum(is.na(data))
