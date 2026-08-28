@@ -1,0 +1,33 @@
+"variable","level","n","percent"
+"sex","Female",4269,47.43
+"sex","Male",4731,52.57
+"chest_pain_type","Asymptomatic",4265,47.39
+"chest_pain_type","Non-Anginal Pain",2141,23.79
+"chest_pain_type","Atypical Angina",1576,17.51
+"chest_pain_type","Typical Angina",1018,11.31
+"exercise_induced_angina","No",6938,77.09
+"exercise_induced_angina","Yes",2062,22.91
+"family_history","No",6548,72.76
+"family_history","Yes",2452,27.24
+"smoker_status","Never",4980,55.33
+"smoker_status","Former",2448,27.2
+"smoker_status","Current",1572,17.47
+"wearable_owner","No",5015,55.72
+"wearable_owner","Yes",3985,44.28
+"bmi_category","Underweight",549,6.1
+"bmi_category","Normal",3671,40.79
+"bmi_category","Overweight",3517,39.08
+"bmi_category","Obese",1263,14.03
+"bp_category","Normal",2093,23.26
+"bp_category","Elevated",1365,15.17
+"bp_category","Hypertension stage 1",3015,33.5
+"bp_category","Hypertension stage 2",2527,28.08
+"glycemic_status","Normal",3770,41.89
+"glycemic_status","Prediabetic",3698,41.09
+"glycemic_status","Diabetic",1532,17.02
+"age_group","18-34",592,6.58
+"age_group","35-49",2711,30.12
+"age_group","50-64",3797,42.19
+"age_group","65+",1900,21.11
+"meets_activity_guideline","No",5097,56.63
+"meets_activity_guideline","Yes",3903,43.37
