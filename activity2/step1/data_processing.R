@@ -60,8 +60,6 @@ sapply(raw, function(column) sum(as.character(column) %in% placeholder))
 
 sum(duplicated(raw$patient_id)) # 0 duplicated ids
 sum(duplicated(raw[, setdiff(names(raw), "patient_id")])) # 0 duplicated patients
-# No patient was entered twice, so unlike Activity 1 there is no
-# pseudo-replication to warn about later.
 
 # 2.3 Categorical columns: are the labels consistent? ------------------------
 # Free-text category columns usually carry typos and inconsistent casing
@@ -113,10 +111,8 @@ range_report <- data.frame(
 )
 range_report
 
-# No measurement falls outside its clinical range, and no column uses a
-# sentinel code such as 0 or -999 to stand for "not measured" - a very common
-# defect in heart-disease datasets, where a cholesterol of 0 really means
-# missing. Here the smallest cholesterol is 90 mg/dL, so the column is genuine.
+# No measurement falls outside its clinical range, and no possible placeholder value for them.
+# Here the smallest cholesterol is 90 mg/dL, so the column is genuine.
 
 # 2.5 Contradictions between columns ----------------------------------------
 # A value can be plausible on its own and still be impossible next to another
@@ -125,7 +121,7 @@ range_report
 sum(raw$resting_bp_systolic <= raw$resting_bp_diastolic) # 0
 sum(raw$max_heart_rate_achieved <= raw$resting_heart_rate) # 0
 
-# Total cholesterol is HDL + LDL + VLDL, so HDL + LDL can never reach the
+# Total cholesterol is HDL + LDL + 0.2 * VLDL, so HDL + LDL can never reach the
 # total. 106 patients (1.2 %) break that rule.
 lipid_overshoot <- raw$hdl + raw$ldl - raw$cholesterol_total
 sum(lipid_overshoot >= 0)
@@ -137,14 +133,27 @@ summary(lipid_overshoot[lipid_overshoot >= 0])
 # them with a flag in Section 4, so Step 3 can refit without them and confirm
 # that nothing in the conclusions depends on them.
 
+friedewald_gap <- raw$cholesterol_total -
+  (raw$hdl + raw$ldl + raw$triglycerides / 5)
+sd(friedewald_gap)
+ggplot(df, aes(x = gap)) +
+  geom_histogram(aes(y = after_stat(density)),
+    fill = "steelblue", color = "white", bins = 30
+  ) +
+  # Add the density curve
+  geom_density(color = "darkred", linewidth = 2) +
+  theme_minimal() +
+  labs(
+    title = "Friedewald Gap with Density Curve",
+    x = "Friedewald Gap (mg/dL)",
+    y = "Density"
+  )
+# The distribution of total cholesterol is around the empirical formula for calculating it, suggesting the error is random and normal
+
 # Apart from that rounding, the lipid panel obeys the Friedewald relationship
 #     total cholesterol ~ HDL + LDL + triglycerides / 5
 # which is what a real laboratory panel looks like.
-friedewald_gap <- raw$cholesterol_total -
-  (raw$hdl + raw$ldl + raw$triglycerides / 5)
-summary(friedewald_gap)
-sd(friedewald_gap)
-
+#
 # This is a warning for the modelling steps, not an error to fix: the four
 # lipid columns are almost a linear combination of each other, so putting all
 # four into one regression would inflate the standard errors. Section 4 adds
@@ -195,7 +204,6 @@ sapply(raw[numeric_raw], count_iqr_outliers)
 # The counts are small relative to 9,000 rows and every flagged value survived
 # the range and contradiction checks above, so all rows are retained.
 
-pdf("numeric_boxplots.pdf", width = 11, height = 7)
 raw |>
   select(all_of(numeric_raw)) |>
   pivot_longer(everything(), names_to = "variable", values_to = "value") |>
@@ -207,7 +215,7 @@ raw |>
     y = "Observed value"
   ) +
   theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
-dev.off()
+ggsave("numeric_boxplots.pdf")
 
 # ---------------------------------------------------------------------------
 # 3. Giving the columns their correct type
@@ -221,12 +229,14 @@ data <- raw |>
   mutate(
     patient_id = as.character(patient_id),
     sex = factor(sex, levels = c("Female", "Male")),
+    # For chest pain type, they are sorted in order of satisfying 0, 1, 2 and 3 criterions
+    #
     chest_pain_type = factor(
       chest_pain_type,
       levels = c(
         "Asymptomatic", "Non-Anginal Pain",
         "Atypical Angina", "Typical Angina"
-      )
+      ), ordered = TRUE
     ),
     # Never < Former < Current is a genuine ordering of tobacco exposure, so
     # smoking is stored as an ordered factor.
@@ -275,8 +285,10 @@ data <- data |>
     # Everything in the lipid panel except HDL, i.e. the "bad" cholesterol in
     # one number. Using this instead of cholesterol_total + ldl + triglycerides
     # avoids the near linear dependency found in Section 2.5.
+    # NOTE: This require further clarification
     non_hdl_cholesterol = cholesterol_total - hdl,
     cholesterol_hdl_ratio = round(cholesterol_total / hdl, 3),
+
 
     # How far the heart rate can rise between rest and peak effort. This is the
     # informative combination of the two heart-rate columns.
@@ -286,6 +298,7 @@ data <- data |>
     # max_heart_rate_achieved). Expressing the measured peak as a percentage of
     # the age-predicted maximum 220 - age gives an age-free measure of effort
     # tolerance.
+    # NOTE: This require further clarification on the formula
     percent_predicted_max_hr = round(
       100 * max_heart_rate_achieved / (220 - age), 2
     ),
@@ -299,6 +312,7 @@ data <- data |>
     ),
     # ACC / AHA blood-pressure stages; a patient is placed in the higher stage
     # of the one their systolic and diastolic readings imply.
+    # NOTE: Require source for the thresholds
     bp_category = factor(
       case_when(
         resting_bp_systolic >= 140 | resting_bp_diastolic >= 90 ~ "Hypertension stage 2",
@@ -310,6 +324,7 @@ data <- data |>
       ordered = TRUE
     ),
     # HbA1c thresholds for prediabetes (5.7 %) and diabetes (6.5 %).
+    # NOTE: Requrie source for the thresholds
     glycemic_status = factor(
       case_when(
         hba1c >= 6.5 ~ "Diabetic",
