@@ -90,6 +90,7 @@ numeric_summary$variable <- rownames(numeric_summary)
 numeric_summary <- numeric_summary[, c("variable", setdiff(names(numeric_summary), "variable"))]
 rownames(numeric_summary) <- NULL
 
+# NOTE: Clarification on what each lines mean. Currently no sign that signify their meanings. Also explain how we can imply from the data.
 print(numeric_summary, row.names = FALSE)
 write.csv(numeric_summary, "numeric_summary_table.csv", row.names = FALSE)
 
@@ -170,7 +171,6 @@ long_numeric <- data |>
   select(all_of(numeric_all)) |>
   pivot_longer(everything(), names_to = "variable", values_to = "value")
 
-pdf("numeric_histograms.pdf", width = 12, height = 8)
 ggplot(long_numeric, aes(value)) +
   geom_histogram(bins = 40) +
   facet_wrap(~variable, scales = "free") +
@@ -179,9 +179,8 @@ ggplot(long_numeric, aes(value)) +
     x = NULL, y = "Number of patients"
   ) +
   theme_classic()
-dev.off()
+ggsave("numeric_historgrams.pdf")
 
-pdf("numeric_qq.pdf", width = 12, height = 8)
 ggplot(long_numeric, aes(sample = value)) +
   stat_qq(size = 0.3) +
   stat_qq_line(colour = "red") +
@@ -191,19 +190,20 @@ ggplot(long_numeric, aes(sample = value)) +
     x = "Theoretical quantiles", y = "Observed value"
   ) +
   theme_classic()
-dev.off()
+ggsave("numeric_qq.pdf")
 
 # The QQ plots make the Step 1 findings visible: max_heart_rate_achieved,
-# triglycerides, bmi, hba1c and ldl run flat at one end, which is the recording
-# limit documented in Step 1, and st_depression has a flat step at zero.
+# triglycerides, bmi, hba1c, and ldl run flat at one end, which is the recording
+# limit documented in Step 1 (Futher explanation), and st_depression has a flat step at zero.
 
+# NOTE: How about two ends?
+#
 # 2.3 The three skewed variables, and what a transformation does -------------
 
-pdf("skewed_variables_transformed.pdf", width = 10, height = 6)
 data |>
   transmute(
     `alcohol_units_per_week` = alcohol_units_per_week,
-    `log(1 + alcohol)` = log1p(alcohol_units_per_week),
+    `log(1 + alcohol)` = log1p(alcohol_units_per_week), # NOTE: Why + 1 here?
     `cholesterol_hdl_ratio` = cholesterol_hdl_ratio,
     `log(cholesterol_hdl_ratio)` = log(cholesterol_hdl_ratio),
     `st_depression` = st_depression,
@@ -223,14 +223,20 @@ data |>
     x = NULL, y = "Number of patients"
   ) +
   theme_classic()
-dev.off()
+ggsave("skewed_variables_transformed.pdf")
 
-cat("skewness alcohol raw / log1p:", round(skewness(data$alcohol_units_per_week), 3),
-  "/", round(skewness(log1p(data$alcohol_units_per_week)), 3), "\n")
-cat("skewness chol/HDL ratio raw / log:", round(skewness(data$cholesterol_hdl_ratio), 3),
-  "/", round(skewness(log(data$cholesterol_hdl_ratio)), 3), "\n")
-cat("skewness st_depression raw / sqrt:", round(skewness(data$st_depression), 3),
-  "/", round(skewness(sqrt(data$st_depression)), 3), "\n")
+cat(
+  "skewness alcohol raw / log1p:", round(skewness(data$alcohol_units_per_week), 3),
+  "/", round(skewness(log1p(data$alcohol_units_per_week)), 3), "\n"
+)
+cat(
+  "skewness chol/HDL ratio raw / log:", round(skewness(data$cholesterol_hdl_ratio), 3),
+  "/", round(skewness(log(data$cholesterol_hdl_ratio)), 3), "\n"
+)
+cat(
+  "skewness st_depression raw / sqrt:", round(skewness(data$st_depression), 3),
+  "/", round(skewness(sqrt(data$st_depression)), 3), "\n"
+)
 
 # The log works on the two variables whose skew comes from a long tail: alcohol
 # goes from +2.03 to +0.02 and the cholesterol / HDL ratio from +1.41 to +0.32,
@@ -240,12 +246,12 @@ cat("skewness st_depression raw / sqrt:", round(skewness(data$st_depression), 3)
 # cannot do better - the problem there is not a tail but the 193 patients
 # sitting exactly at zero, and no transformation moves a point mass. If Step 3
 # needs st_depression to behave, the honest option is to split it into "any ST
-# depression yes/no" plus the amount among the patients who have some.
+# depression yes/no" plus the amount among the patients who have some. # NOTE: WHERE IS THE MISSING DATA ON THE NUMBER?
 #
 # For contrast, a log applied to triglycerides would make things worse, not
 # better (skewness +0.13 -> -1.09): the column is already symmetric, and the
 # transformation would manufacture a left tail. Transformations are applied to
-# the variables that need them, not by habit to everything that is a lipid.
+# the variables that need them, not by habit to everything that is a lipid. (#NOTE: Source please? There are no triglyceridge)
 
 
 # =============================================================================
@@ -283,7 +289,6 @@ write.csv(categorical_summary, "categorical_summary_table.csv", row.names = FALS
 # is Underweight with 549 patients - so no category has to be collapsed before
 # Step 3, and every cell of a two-way table will still be well filled.
 
-pdf("categorical_distributions.pdf", width = 11, height = 7)
 categorical_summary |>
   ggplot(aes(x = level, y = percent)) +
   geom_col() +
@@ -294,7 +299,7 @@ categorical_summary |>
   ) +
   theme_classic() +
   theme(axis.text.x = element_text(angle = 30, hjust = 1))
-dev.off()
+ggsave("categorical_distributions.pdf")
 
 
 # =============================================================================
@@ -315,6 +320,7 @@ cohens_d <- function(x, group) {
   (mean(x1) - mean(x0)) / pooled_sd
 }
 
+# Compare the two subset's differences
 outcome_comparison <- do.call(rbind, lapply(numeric_all, function(v) {
   x <- data[[v]]
   g <- data$has_heart_disease
@@ -340,7 +346,7 @@ write.csv(outcome_comparison, "numeric_by_outcome_table.csv", row.names = FALSE)
 #               rate under exertion. Peak heart rate averages 146 bpm in the
 #               diagnosed group against 173 bpm in the rest - a 27 bpm gap,
 #               larger than one and a half standard deviations, and by far the
-#               strongest signal in the dataset.
+#               strongest signal in the dataset. they are possible to be signficant
 #   large       st_depression (+0.83), cholesterol_hdl_ratio (+0.82)
 #   medium      age (+0.66), non_hdl_cholesterol (+0.62), ldl (+0.60),
 #               hdl (-0.57), resting_bp_systolic (+0.56),
@@ -361,12 +367,11 @@ write.csv(outcome_comparison, "numeric_by_outcome_table.csv", row.names = FALSE)
 #     they contribute, it is not visible marginally.
 #   - the three heart-rate variables derived in Step 1 take the top three
 #     places, ahead of every raw measurement. That is the evidence that those
-#     derivations earned their place.
+#     derivations earned their place. They are worth further inspection
 #
 # Note that the top three are near-duplicates of each other (Step 1 measured
 # their mutual correlations at 0.76-0.93), so this is one finding, not three.
 
-pdf("numeric_by_outcome_boxplots.pdf", width = 12, height = 8)
 data |>
   select(all_of(numeric_all), has_heart_disease) |>
   pivot_longer(-has_heart_disease, names_to = "variable", values_to = "value") |>
@@ -378,13 +383,15 @@ data |>
     x = "Diagnosed with heart disease", y = NULL
   ) +
   theme_classic()
-dev.off()
+ggsave("numeric_by_outcome_boxplots.pdf")
 
 # The four variables with the largest |d|, drawn as densities so the overlap
 # between the two groups is visible. Even for the strongest variable the two
 # distributions overlap heavily: no single measurement separates the groups,
 # which is the argument for fitting a multivariable model in Step 3.
-pdf("top_predictors_density.pdf", width = 10, height = 7)
+# NOTE: The overlap does not say any. They are plotted on different groups.
+# Max heartrate is quite separated between groups.
+# NEED REVISION HERE
 data |>
   select(
     max_heart_rate_achieved, st_depression, age, cholesterol_hdl_ratio,
@@ -399,7 +406,7 @@ data |>
     x = NULL, y = "Density", fill = "Heart disease"
   ) +
   theme_classic()
-dev.off()
+ggsave("top_predictors_density.pdf")
 
 
 # =============================================================================
@@ -408,6 +415,7 @@ dev.off()
 # Reported as the disease rate within each level, against the 30.3% baseline,
 # plus Cramer's V for the strength of the association. V runs from 0 to 1; for
 # a 2 x 2 table it equals the phi coefficient.
+# NOTE: What is the cramer: A link to them is sufficient. Otherwise require explanation for using them
 
 cramers_v <- function(x, y) {
   tab <- table(x, y)
@@ -445,7 +453,7 @@ write.csv(association_strength, "categorical_association_strength.csv", row.name
 # angina during the stress test are diagnosed, against 19.1% of those who do
 # not. Together with the heart-rate variables from Section 4, this says the
 # exercise stress test carries most of the information in the dataset.
-#
+# NOTE: WHERE IS THE NUMBER? THERE ARE NO SIGN FOR THEM
 # The rest, in order of V:
 #   age_group    (0.28)  9.5% at 18-34 rising to 51.1% at 65+, the cleanest
 #                        monotone gradient in the table
@@ -466,7 +474,6 @@ write.csv(association_strength, "categorical_association_strength.csv", row.name
 # heart-disease study leads with. And family_history is last: it does separate
 # the groups, but by less than any other variable here.
 
-pdf("disease_rate_by_category.pdf", width = 12, height = 8)
 rate_by_level |>
   ggplot(aes(x = level, y = disease_rate)) +
   geom_col() +
@@ -479,7 +486,7 @@ rate_by_level |>
   ) +
   theme_classic() +
   theme(axis.text.x = element_text(angle = 30, hjust = 1))
-dev.off()
+ggsave("disease_rate_by_category.pdf")
 
 
 # =============================================================================
@@ -494,7 +501,6 @@ round(correlation_matrix, 2)
 # the alphabetical order used in the Step 1 version of this figure.
 variable_order <- numeric_all[hclust(as.dist(1 - abs(correlation_matrix)))$order]
 
-pdf("correlation_heatmap.pdf", width = 10, height = 9)
 correlation_matrix |>
   as.table() |>
   as.data.frame() |>
@@ -513,7 +519,7 @@ correlation_matrix |>
   ) +
   theme_classic() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-dev.off()
+ggsave("correlation_heatmap.pdf")
 
 # The blocks in the heatmap are the lipid panel, the two blood-sugar measures,
 # the two blood pressures, and the heart-rate group - the same groups Step 1
@@ -526,7 +532,6 @@ dev.off()
 
 # Age is worth a plot of its own, because it drives several other variables and
 # is therefore a confounder for all of them.
-pdf("age_relationships.pdf", width = 10, height = 7)
 data |>
   select(
     age, max_heart_rate_achieved, resting_bp_systolic, ldl, hba1c
@@ -541,7 +546,7 @@ data |>
     x = "Age (years)", y = NULL
   ) +
   theme_classic()
-dev.off()
+ggsave("age_relationships.pdf")
 
 # max_heart_rate_achieved falls almost linearly with age (r = -0.73), which is
 # physiology, not disease. Since both age and peak heart rate are among the
