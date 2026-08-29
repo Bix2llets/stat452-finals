@@ -18,18 +18,18 @@ classification_table <- table(ground_truth, classification_result)
 str(classification_table)
 true_positive <- classification_table["TRUE", "TRUE"]
 true_negative <- classification_table["FALSE", "FALSE"]
-false_positive <- classification_table["TRUE", "FALSE"]
-false_negative <- classification_table["FALSE", "TRUE"]
+false_positive <- classification_table["FALSE", "TRUE"]
+false_negative <- classification_table["TRUE", "FALSE"]
 
 
 # Calclulating the metrics
-(accuracy <- (true_positive + true_negative) / sum(classification_table)) * 100
+(accuracy <- (true_positive + true_negative) / sum(classification_table) * 100)
 # 81%
-(precision <- true_positive / (false_positive + true_positive)) * 100
-# 69.23%
-(recall <- true_positive / (true_positive + false_negative)) * 100
+(precision <- true_positive / (false_positive + true_positive) * 100)
 # 62.06%
-(f1 <- 2 * (precision * recall) / (precision + recall)) * 100
+(recall <- true_positive / (true_positive + false_negative) * 100)
+# 69.23%
+(f1 <- 2 * (precision * recall) / (precision + recall))
 # 65.45%
 
 roc_object <- roc(ground_truth, prediction_result)
@@ -52,7 +52,6 @@ ggplot(roc_data, aes(x = FalsePositiveRate, y = Sensitivity)) +
     y = "True Positive Rate (Sensitivity)"
   )
 
-# The area under the curve, as extracted, is 0.87. It means that the classification model correctly predict 87% if an employee have their salary belong to the top 25%
-# on a random employee with the needed information. Since the predition of top tier salary is not critical i.e. they only serve as statistical tools and not contributing
+# The area under the curve, as extracted, is 0.87. In 87$ of the cases it correctly rank those with that has top tier salary higher than those without. Since the predition of top tier salary is not critical i.e. they only serve as statistical tools and not contributing
 # in making critical decision, this value is accepted as excellent, which mean the model's predictability is good for the data.
 # Source for it:  https://www.statology.org/what-is-a-good-auc-score/
