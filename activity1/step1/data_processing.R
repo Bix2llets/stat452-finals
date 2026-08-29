@@ -1,7 +1,8 @@
 # Data inspection
 #
 library(tidyverse)
-data <- read.csv("../dataset/ds_salaries.csv")
+library(countrycode)
+data <- read.csv("activity1/dataset/ds_salaries.csv")
 set.seed(6767)
 
 # First, we use head and str to get the sample of data and their types
@@ -85,15 +86,23 @@ data <- (data |> mutate(
     .default = "Other",
     str_detect(employment_type, "FT") ~ "Fulltime"
   ),
+  company_continent = countrycode(company_location, origin = "iso2c", destination = "continent"),
+
+  # Then map it to your specific categories
   company_location = case_when(
-    .default = "Other",
-    str_detect(company_location, "US") ~ "US"
+    company_continent == "Americas" ~ "America",
+    company_continent == "Europe" ~ "Europe",
+    company_continent == "Asia" ~ "Asia",
+    .default = "Other" # This will catch Africa, Oceania, and missing matches
   ),
+  employee_continent = countrycode(employee_residence, origin = "iso2c", destination = "continent"),
   employee_residence = case_when(
-    .default = "Other",
-    str_detect(employee_residence, "US") ~ "US"
+    employee_continent == "Americas" ~ "America",
+    employee_continent == "Europe" ~ "Europe",
+    employee_continent == "Asia" ~ "Asia",
+    .default = "Other"
   )
-))
+)) |> select(-employee_continent, -company_continent)
 
 
 # Seven management titles cannot be assigned to one of the three functional
@@ -155,4 +164,4 @@ data <- data |>
 
 
 str(data)
-saveRDS(data, "../dataset/cleaned_data.rds")
+saveRDS(data, "activity1/dataset/cleaned_data.rds")

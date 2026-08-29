@@ -32,14 +32,16 @@ stopifnot(
 
 salary_data$original_row_index <- seq_len(nrow(salary_data))
 salary_data <- salary_data[
-  order(salary_data$work_year, salary_data$original_row_index, method = "radix"),
-  , drop = FALSE
+  order(salary_data$work_year, salary_data$original_row_index, method = "radix"), ,
+  drop = FALSE
 ]
 test_year <- max(salary_data$work_year)
 training_data <- salary_data[salary_data$work_year < test_year, , drop = FALSE]
 testing_data <- salary_data[salary_data$work_year == test_year, , drop = FALSE]
 stopifnot(max(training_data$work_year) < min(testing_data$work_year))
 
+unique(training_data$work_year)
+unique(testing_data$work_year)
 # 3. Factor levels and treatment coding --------------------------------------
 
 for (variable in factor_predictors) {
@@ -76,10 +78,11 @@ model_formula <- observed_salary_in_usd ~
   company_location + company_size + role + leadership
 design_formula <- ~
   work_year + experience_level + employment_type + remote_ratio +
-  company_location + company_size + role + leadership
+    company_location + company_size + role + leadership
 
 multiple_linear_model <- lm(
-  model_formula, data = training_data, contrasts = treatment_contrasts
+  model_formula,
+  data = training_data, contrasts = treatment_contrasts
 )
 stopifnot(
   multiple_linear_model$rank == length(coef(multiple_linear_model)),
@@ -91,15 +94,20 @@ multiple_linear_predictions <- as.numeric(
 
 # 5. MLR diagnostics: report only; do not remove or refit ---------------------
 
-mlr_residuals <- residuals(multiple_linear_model)
-residual_mean_test <- t.test(mlr_residuals, mu = 0)
-shapiro_test <- shapiro.test(mlr_residuals)
-breusch_pagan_test <- lmtest::bptest(multiple_linear_model)
+(mlr_residuals <- residuals(multiple_linear_model))
+(residual_mean_test <- t.test(mlr_residuals, mu = 0))
+(shapiro_test <- shapiro.test(mlr_residuals))
+(breusch_pagan_test <- lmtest::bptest(multiple_linear_model))
 
-gvif <- car::vif(multiple_linear_model)
-gvif_table <- data.frame(
-  term = rownames(gvif), GVIF = gvif[, 1],
-  degrees_of_freedom = gvif[, 2], adjusted_GVIF = gvif[, 3], row.names = NULL
+par(mfrow = c(2, 2))
+plot(multiple_linear_model)
+par(mfrow = c(1, 1))
+(gvif <- car::vif(multiple_linear_model))
+(
+  gvif_table <- data.frame(
+    term = rownames(gvif), GVIF = gvif[, 1],
+    degrees_of_freedom = gvif[, 2], adjusted_GVIF = gvif[, 3], row.names = NULL
+  )
 )
 
 cooks_values <- cooks.distance(multiple_linear_model)
@@ -135,10 +143,12 @@ invisible(dev.off())
 # 6. LASSO with year-balanced training-only CV -------------------------------
 
 x_training_full <- model.matrix(
-  design_formula, training_data, contrasts.arg = treatment_contrasts
+  design_formula, training_data,
+  contrasts.arg = treatment_contrasts
 )
 x_testing_full <- model.matrix(
-  design_formula, testing_data, contrasts.arg = treatment_contrasts
+  design_formula, testing_data,
+  contrasts.arg = treatment_contrasts
 )
 x_training <- x_training_full[, -1, drop = FALSE]
 x_testing <- x_testing_full[, -1, drop = FALSE]
@@ -154,12 +164,14 @@ fold_year_distribution <- table(work_year = training_data$work_year, fold = fold
 stopifnot(all(fold_year_distribution > 0L))
 
 lasso_cv <- glmnet::cv.glmnet(
-  x_training, y_training, alpha = 1, foldid = fold_id,
+  x_training, y_training,
+  alpha = 1, foldid = fold_id,
   standardize = TRUE, type.measure = "mse"
 )
 selected_lambda <- lasso_cv$lambda.1se
 lasso_model <- glmnet::glmnet(
-  x_training, y_training, alpha = 1,
+  x_training, y_training,
+  alpha = 1,
   lambda = selected_lambda, standardize = TRUE
 )
 lasso_predictions <- as.numeric(
@@ -237,14 +249,22 @@ saveRDS(bundle, output_path)
 
 cat("\nStep 4 completed\n")
 cat("Train/test rows:", nrow(training_data), "/", nrow(testing_data), "\n")
-cat("Train/test years:", paste(names(table(training_data$work_year)), collapse = ","),
-    "/", test_year, "\n")
-cat("MLR: Shapiro p =", signif(shapiro_test$p.value, 4),
-    "; BP p =", signif(breusch_pagan_test$p.value, 4),
-    "; max adjusted GVIF =", signif(max(gvif_table$adjusted_GVIF), 4), "\n")
+cat(
+  "Train/test years:", paste(names(table(training_data$work_year)), collapse = ","),
+  "/", test_year, "\n"
+)
+cat(
+  "MLR: Shapiro p =", signif(shapiro_test$p.value, 4),
+  "; BP p =", signif(breusch_pagan_test$p.value, 4),
+  "; max adjusted GVIF =", signif(max(gvif_table$adjusted_GVIF), 4), "\n"
+)
 cat("Influence flags (Cook/leverage/studentized):", paste(influence_counts, collapse = "/"), "\n")
-cat("LASSO lambda.min / lambda.1se:", signif(lasso_cv$lambda.min, 7), "/",
-    signif(selected_lambda, 7), "\n")
-cat("Finite predictions:", all(is.finite(multiple_linear_predictions)), "/",
-    all(is.finite(lasso_predictions)), "\n")
+cat(
+  "LASSO lambda.min / lambda.1se:", signif(lasso_cv$lambda.min, 7), "/",
+  signif(selected_lambda, 7), "\n"
+)
+cat(
+  "Finite predictions:", all(is.finite(multiple_linear_predictions)), "/",
+  all(is.finite(lasso_predictions)), "\n"
+)
 cat("Saved:", output_path, "and", diagnostic_path, "\n")
