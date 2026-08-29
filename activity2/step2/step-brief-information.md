@@ -30,11 +30,32 @@ Full table: `numeric_summary_table.csv` (n, mean, sd, CV, min, Q1, median, Q3, m
 
 `triglycerides` is *not* among them (skewness 0.13), even though a lipid measurement is normally right-skewed. That is a consequence of the truncation Step 1 found: 114 patients pile up on the 35 mg/dL floor, so the distribution was compressed before we got the file.
 
-**Normality.** Judged with the **chi-square goodness-of-fit test** against a normal fitted to each variable. Each column is cut at the deciles of that fitted normal, so all ten bins have an expected count of 900, and
+**Normality.** Judged with the **chi-square goodness-of-fit test** against a normal fitted to each variable.
+
+*Why not Shapiro–Wilk or Jarque–Bera, which Activity 1 Step 2 used?* The script now runs both against the same columns rather than dismissing them, so the answer is checked rather than argued.
+
+**Shapiro–Wilk cannot be used at all.** R's `shapiro.test()` stops at `sample size must be between 3 and 5000`, and this dataset has 9,000 patients. Activity 1 had n = 600, so the limit never arose there. Splitting the column to get under it would make the answer depend on which half was tested. The script prints the error rather than claiming it.
+
+**Jarque–Bera runs, and changes nothing.** It rejects 14 of 24 variables against the chi-square test's 17 — the same large-sample behaviour — and it puts the *same three* variables an order of magnitude clear of the rest:
+
+| Variable | Jarque–Bera | *X*² | Skewness |
+| --- | --- | --- | --- |
+| `alcohol_units_per_week` | 20,972 | 3,744 | +2.03 |
+| `st_depression` | 18,017 | 3,341 | +2.04 |
+| `cholesterol_hdl_ratio` | 9,766 | 768 | +1.41 |
+| *everything else* | ≤ 102 | ≤ 285 | \|skew\| ≤ 0.23 |
+
+So the transformations in §2.3 are the same either way.
+
+**Where the two disagree says why the binned test is the one we read.** Jarque–Bera is a function of the skewness and excess kurtosis alone, so it sees nothing in `resting_heart_rate` (JB 0.6, skewness −0.019) while the goodness-of-fit test puts it at *X*² = 285 — a departure in the *shape* of the distribution that the two moments cannot detect. The binned test also gives a ranking on a common 7 df, which is what we actually need, rather than a yes/no verdict.
+
+**And it is the method the course teaches.** The chi-square goodness-of-fit test carries the decision; the other two are printed for continuity with Activity 1, not used to choose the transformations.
+
+*The test itself.* Each column is cut at the deciles of the fitted normal, so all ten bins have an expected count of 900, and
 
 $$X^2 = \sum_{\text{bins}} \frac{(\text{observed} - \text{expected})^2}{\text{expected}}$$
 
-is referred to a chi-square distribution on *k* − 1 − 2 = 7 degrees of freedom — two degrees of freedom are spent estimating the mean and sd from the sample. The 5 % critical value is 14.07.
+is referred to a chi-square distribution on *k* − 1 − 2 = 7 degrees of freedom — two degrees of freedom are spent estimating the mean and sd from the sample. The critical value is `qchisq(0.05, df = 7, lower.tail = FALSE)` = **14.07**: written with the significance level itself and the upper tail, so the number is visibly the point leaving 5 % of the distribution above it — the 5 % the test rejects in.
 
 The **size** of *X*² is what is read, not its p-value. At n = 9,000 the test detects departures far too small to matter, and it duly rejects **17 of the 24 variables**. The ordering shows why only three of those rejections mean anything:
 
@@ -74,6 +95,21 @@ The smallest level in the entire table is Underweight with 549 patients, so noth
 
 Full table: `numeric_by_outcome_table.csv`. Each gap between the two group means is divided by the **pooled standard deviation** of the two groups — the same pooled estimate a two-group comparison of means uses, and the square root of the within-group mean square a one-factor ANOVA on the same split would report. Dividing by it makes 24 variables measured in mmHg, mg/dL, bpm and minutes comparable with one another. The number reads as a count of standard deviations; the conventional wording is 0.2 small, 0.5 medium, 0.8 large, which is a reporting convention rather than a test.
 
+**The size bands below are distances, not significance labels — 1.96 does not apply to them.** The standardised mean difference divides the gap by the spread of the *patients*, so it does not grow with the sample: 1.55 means the two group means sit 1.55 patient standard deviations apart, and it would still be 1.55 with twice the data. 1.96 is the 5 % two-tail cut-off for a *z* statistic, which divides the same gap by its standard error instead, and so carries a factor of √n:
+
+$$\text{smd} = \frac{\bar x_1 - \bar x_0}{s_p} \qquad z = \frac{\text{smd}}{\sqrt{1/n_1 + 1/n_0}}$$
+
+At these group sizes (2,727 and 6,273) the multiplier is **43.6**. Even the smallest entry in the table — `alcohol_units_per_week` at 0.09 — reaches *z* = 3.9 and clears 1.96 comfortably. So all 24 variables would be "significant", and none of the 24 reaches 1.96 on the smd scale. Comparing an smd against 1.96 is a category error, and the fact that every variable passes the test is exactly why the test is left to Step 3.
+
+To make "very large" mean something in patients rather than in convention, the script prints the overlap each band implies — the share of diagnosed patients falling past the median of the undiagnosed group (50 % for identical groups, 100 % for complete separation):
+
+| Variable | smd | Diagnosed past the healthy median |
+| --- | --- | --- |
+| `percent_predicted_max_hr` | −1.58 | 93.2 % |
+| `st_depression` | +0.83 | 71.8 % |
+| `age` | +0.66 | 72.5 % |
+| `sleep_hours` | −0.11 | 51.9 % |
+
 | Size | Variables |
 | --- | --- |
 | **Very large** | `percent_predicted_max_hr` (−1.58), `max_heart_rate_achieved` (−1.55), `heart_rate_reserve` (−1.54) |
@@ -84,11 +120,23 @@ Full table: `numeric_by_outcome_table.csv`. Each gap between the two group means
 
 **Peak heart rate is the dominant signal.** Diagnosed patients average 146 bpm at peak effort against 173 bpm for everyone else — a 27 bpm gap, more than one and a half standard deviations. The top three entries are near-duplicates of each other (mutual correlations 0.76–0.93 per Step 1), so this is *one* finding, not three.
 
+**Which variable is "exertion".** All three come from the same exercise stress test, in which the patient walks a treadmill to peak effort. `max_heart_rate_achieved` is the highest heart rate reached during that test; `heart_rate_reserve` is that peak minus the resting rate; `percent_predicted_max_hr` is that peak as a percentage of the 220 − age prediction. The exertion is the treadmill test itself — there is no separate exertion variable in the dataset.
+
+**What the data supports is the gap, not a reason for it.** An earlier draft said diagnosed patients "cannot raise their heart rate under exertion". That is a mechanism, and this is observational data: the recorded fact is that diagnosed patients *reached* a lower peak on the test. Whether they could not go higher, or the test was stopped early because of symptoms, or they were on rate-limiting medication, is not recorded here and cannot be settled from this file. The claim in the report is the 27 bpm gap.
+
 Every sign points the way clinical knowledge says it should, which is a useful check that the data behaves sensibly. Two results cut against expectation: **alcohol and sleep separate the groups least of all 24 variables**, and the three heart-rate variables *derived in Step 1* take the top three places ahead of every raw measurement — the evidence that those derivations earned their place.
 
 `top_predictors_histograms.pdf` makes the important caveat visible. The two groups are drawn on the **patient-count scale** rather than as two densities, because a density curve rescales each group to unit area and would silently inflate the smaller diagnosed group (2,727) to the same height as the larger undiagnosed one (6,273).
 
-How much they overlap is measured rather than eyeballed, as the share of each group falling inside the other group's central 90 % range:
+**Why an overlap table at all.** The standardised difference ranks variables by how far apart the two group *means* sit, and that says nothing about whether the groups can be told apart patient by patient — two distributions can have means far apart and still cover the same range of values. The overlap table measures that directly, which the effect size cannot and the histogram can only suggest.
+
+**How to read it.** "Central range" is a group's 5th to 95th percentile, i.e. where its middle 90 % sits. Both columns are proportions from 0 to 1: complete separation would give 0 in both, and a variable carrying no information at all would give about 0.90 in both, because the two ranges would be the same range.
+
+**What heavy overlap rules out:** a single-variable screening rule. If most diagnosed patients have values healthy patients also have, no cut-off on that one variable can be drawn without either missing many cases or flagging many healthy patients. Nothing here supports a "peak heart rate below *X* means disease" rule.
+
+**What it does not rule out:** the variable being a strong predictor. Overlapping distributions still shift the *probability* of diagnosis across the range, which is precisely what a logistic regression models — it estimates a probability per patient rather than sorting patients into two boxes. Nor does it rule out several overlapping variables separating the groups well *together*: two variables that each overlap heavily on their own can still be far apart in the plane they span. And it is not evidence that a variable is unrelated to the diagnosis — only the effect sizes speak to that, and Step 3's tests settle it.
+
+The share of each group falling inside the other group's central 90 % range:
 
 | Variable | Diseased inside the healthy range | Healthy inside the diseased range |
 | --- | --- | --- |
@@ -102,6 +150,12 @@ How much they overlap is measured rather than eyeballed, as the share of each gr
 ### Categorical variables — risk difference and odds ratio
 
 Full tables: `categorical_by_outcome_table.csv`, `categorical_association_strength.csv`. Figure: `disease_rate_by_category.pdf`.
+
+**What the percentages in this section are.** Every rate quoted below is a **disease rate**: of the patients at that level, the percentage diagnosed with heart disease. "`age_group` 18–34 9.5 %" means 9.5 of every 100 patients aged 18–34 in this sample carry the diagnosis. The unit is percent *of the patients within the level* — not percent of the sample, and not percent of the cases — so the levels of one variable do not add to 100. The 30.3 % overall prevalence is the reference each is read against.
+
+**What "each factor in isolation" means.** Each rate is computed from one variable at a time, with nothing else held fixed — a **marginal** association, carrying whatever confounding comes with it. The 46.4 % for current smokers is the rate among current smokers of every age, weight and blood pressure the sample happens to contain; if current smokers here are also older, part of that 46.4 % is age rather than tobacco. These rates cannot be added, multiplied or chained across variables, and they are not the effect of the variable "controlling for" the others.
+
+The adjusted version is what **Step 3** produces: a logistic regression gives each level's odds ratio with the other predictors held fixed. Comparing the two is the point — the difference between the marginal odds ratio here and the adjusted one there *is* the confounding the model removes. §6 gives one case (`wearable_owner`) where the marginal number is known in advance to mislead.
 
 Each variable is summarised by two numbers taken between its safest and riskiest level:
 
@@ -129,6 +183,8 @@ Ranked by risk difference:
 `exercise_induced_angina` dominates on risk difference, at 0.487 against 0.416 for the next variable. Combined with the heart-rate result above: **the exercise stress test carries most of the information in this dataset.**
 
 The two measures disagree at the top, and the disagreement is informative. `age_group` has the **larger odds ratio** (10.0 vs 8.9) but the **smaller risk difference**, because its safest level starts from a much lower base rate — 9.5 % at 18–34 against 19.1 % for patients without exercise angina. Multiplying a small probability by 10 still leaves a small probability. So the stress-test result is the more useful finding clinically, while age will look like the stronger term in a logistic regression's coefficients.
+
+`disease_rate_by_category.pdf` now prints the rate and the level size on every bar, so the figure carries the numbers itself and the report does not need a supplementary table beside it. *n* is on the bar because both summary measures ignore level size, and a rate computed on 549 patients should be read differently from one computed on 4,980.
 
 Two rankings are worth noting. `chest_pain_type` places only sixth, below three of the four categories derived in Step 1, despite being the variable a textbook heart-disease study leads with. And `family_history` is last — it does separate the groups, but by less than anything else here. Every ordered variable moves monotonically in the expected direction: `age_group` 9.5 → 18.0 → 31.9 → 51.1 %, `bp_category` 17.0 → 25.3 → 30.4 → 43.9 %, `glycemic_status` 20.7 → 33.7 → 45.6 %, and `smoker_status` 25.2 → 30.3 → 46.4 %, with former smokers sitting neatly between never and current.
 

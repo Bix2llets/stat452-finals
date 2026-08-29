@@ -1,83 +1,32 @@
 # Activity 2 - Step 1: Describe and clean the dataset
 #
-# Dataset: heart_disease_risk_2026.csv (9,000 patients x 27 columns)
-# Goal of this script:
-#   1. Inspect the raw file and document what every column contains.
-#   2. Run explicit data-quality checks (missing values, duplicates,
-#      out-of-range values, internal contradictions between variables).
-#   3. Give every column the right R type so Steps 2 and 3 can use it directly.
-#   4. Add a small number of derived variables that clinical practice already
-#      uses, and that remove the worst redundancy between the raw columns.
-#   5. Save the result as cleaned_data.rds for the later steps.
+# Input : ../dataset/heart_disease_risk_2026.csv  (9,000 patients x 27 columns)
+# Output: ../dataset/cleaned_data.rds, numeric_boxplots.pdf,
+#         correlation_heatmap.pdf
 #
-# Run this script with activity2/step1 as the working directory.
+# Run with activity2/step1 as the working directory.
 
 library(dplyr)
 library(tidyr)
 library(ggplot2)
 
-set.seed(6767)
-
 raw <- read.csv("../dataset/heart_disease_risk_2026.csv", stringsAsFactors = FALSE)
 
 # ---------------------------------------------------------------------------
-# 1. First look at the data
+# 1. First look
 # ---------------------------------------------------------------------------
+# One row per patient. The response is has_heart_disease (0/1). patient_id is a
+# record number and must never enter a model.
 
 dim(raw)
-head(raw)
 str(raw)
 summary(raw)
 
-# The file holds one row per patient. patient_id is a running record number, so
-# it carries no information about the patient and must never enter a model - it
-# is kept only so a row in the cleaned data can be traced back to the raw file.
-#
-# The response is has_heart_disease, coded 0 / 1. Everything else is either a
-# demographic, a clinical measurement taken at rest or during an exercise test,
-# a blood test result, or a self-reported lifestyle variable.
-
-length(unique(raw$patient_id)) == nrow(raw) # TRUE -> the id really is unique
+length(unique(raw$patient_id)) == nrow(raw) # TRUE -> the id is unique
 
 # ---------------------------------------------------------------------------
 # 2. Data-quality checks
 # ---------------------------------------------------------------------------
-
-# 2.1 Missing values ---------------------------------------------------------
-# We check for both R's NA and for the strings that spreadsheets often leave
-# behind ("", "NA", "N/A", "?", "unknown") - read.csv would have imported those
-# as ordinary text, not as NA.
-
-colSums(is.na(raw))
-sum(is.na(raw)) # 0
-
-placeholder <- c("", " ", "NA", "N/A", "na", "?", "-", "unknown", "Unknown")
-sapply(raw, function(column) sum(as.character(column) %in% placeholder))
-# All zero. The dataset is complete: no imputation and no listwise deletion is
-# needed, so the analysis in Steps 2 and 3 uses all 9,000 patients.
-
-# 2.2 Duplicated records -----------------------------------------------------
-
-sum(duplicated(raw$patient_id)) # 0 duplicated ids
-sum(duplicated(raw[, setdiff(names(raw), "patient_id")])) # 0 duplicated patients
-
-# 2.3 Categorical columns: are the labels consistent? ------------------------
-# Free-text category columns usually carry typos and inconsistent casing
-# ("male" / "Male" / "M "). We list every level actually present.
-
-categorical_raw <- c(
-  "sex", "chest_pain_type", "exercise_induced_angina",
-  "family_history", "smoker_status", "wearable_owner"
-)
-lapply(raw[categorical_raw], table)
-
-# Every column uses exactly one spelling per category and there is no stray
-# whitespace, so no recoding of labels is required. The three True / False
-# columns were imported as text and are converted to proper factors below.
-
-# 2.4 Numerical columns: are the values physiologically possible? ------------
-# Rather than trusting min / max by eye, we state a plausible range for each
-# measurement from standard clinical reference ranges and count the violations.
 
 numeric_raw <- c(
   "age", "resting_bp_systolic", "resting_bp_diastolic", "cholesterol_total",
@@ -86,6 +35,31 @@ numeric_raw <- c(
   "alcohol_units_per_week", "exercise_minutes_per_week", "sleep_hours",
   "stress_score", "daily_steps", "diet_quality_score"
 )
+categorical_raw <- c(
+  "sex", "chest_pain_type", "exercise_induced_angina",
+  "family_history", "smoker_status", "wearable_owner"
+)
+
+# 2.1 Missing values and duplicates ------------------------------------------
+# read.csv imports "NA", "?" and the like as text, so check those too.
+
+sum(is.na(raw)) # 0
+placeholder <- c("", " ", "NA", "N/A", "na", "?", "-", "unknown", "Unknown")
+sum(sapply(raw, function(column) sum(as.character(column) %in% placeholder)))
+
+sum(duplicated(raw$patient_id))
+sum(duplicated(raw[, setdiff(names(raw), "patient_id")]))
+
+# All zero, so all 9,000 patients are used with no imputation or deletion.
+
+# 2.2 Are the category labels consistent? ------------------------------------
+
+lapply(raw[categorical_raw], table)
+
+# One spelling per category and no stray whitespace, so no recoding is needed.
+
+# 2.3 Are the numbers physiologically possible? ------------------------------
+# Ranges are the standard clinical reference ranges.
 
 plausible_range <- list(
   age = c(18, 100), resting_bp_systolic = c(70, 250),
@@ -111,91 +85,37 @@ range_report <- data.frame(
 )
 range_report
 
-# No measurement falls outside its clinical range, and no possible placeholder value for them.
-# Here the smallest cholesterol is 90 mg/dL, so the column is genuine.
+# Nothing out of range.
 
-# 2.5 Contradictions between columns ----------------------------------------
-# A value can be plausible on its own and still be impossible next to another
-# column. These four checks catch that.
+# 2.4 Contradictions between columns -----------------------------------------
+# Systolic must exceed diastolic and the exercise peak must exceed the resting
+# rate. The Friedewald relation says total = HDL + LDL + triglycerides / 5
+# (mg/dL); the last term is positive, so HDL + LDL cannot reach the total.
 
 sum(raw$resting_bp_systolic <= raw$resting_bp_diastolic) # 0
 sum(raw$max_heart_rate_achieved <= raw$resting_heart_rate) # 0
 
-# The Friedewald relationship says a lipid panel is internally consistent when
-#     total cholesterol = HDL + LDL + VLDL,   with VLDL estimated by
-#     VLDL = triglycerides / 5 (mg/dL).
-# VLDL is strictly positive, so HDL + LDL can never reach the total.
-# 106 patients (1.2 %) break that rule.
 lipid_overshoot <- raw$hdl + raw$ldl - raw$cholesterol_total
 sum(lipid_overshoot >= 0)
 summary(lipid_overshoot[lipid_overshoot >= 0])
 
-# The overshoot is at most 12 mg/dL and is 2 mg/dL at the median, i.e. it is
-# the size of the rounding applied to each of the three results separately,
-# not a mix-up of patients or of units. We therefore keep these rows and mark
-# them with a flag in Section 4, so Step 3 can refit without them and confirm
-# that nothing in the conclusions depends on them.
-
 friedewald_gap <- raw$cholesterol_total -
   (raw$hdl + raw$ldl + raw$triglycerides / 5)
 summary(friedewald_gap)
-sd(friedewald_gap) # 8.04 mg/dL
+sd(friedewald_gap)
 
-# The gap is centred on zero with a standard deviation of 8 mg/dL. To show that
-# this residual is only rounding noise and not a systematic defect, we plot its
-# histogram against the normal curve with the same mean and standard deviation,
-# and add the matching normal Q-Q plot.
-
-gap_data <- data.frame(friedewald_gap = friedewald_gap)
-
-gap_histogram <- ggplot(gap_data, aes(x = friedewald_gap)) +
-  geom_histogram(aes(y = after_stat(density)),
-    fill = "steelblue", color = "white", bins = 30
-  ) +
-  stat_function(
-    fun = dnorm,
-    args = list(mean = mean(friedewald_gap), sd = sd(friedewald_gap)),
-    color = "darkred", linewidth = 1
-  ) +
-  theme_minimal() +
-  labs(
-    title = "Friedewald gap against the fitted normal curve",
-    subtitle = paste0(
-      "mean = ", round(mean(friedewald_gap), 2),
-      " mg/dL, sd = ", round(sd(friedewald_gap), 2), " mg/dL"
-    ),
-    x = "Total cholesterol - (HDL + LDL + triglycerides / 5), mg/dL",
-    y = "Density"
-  )
-ggsave("friedewald_gap.pdf", gap_histogram, width = 7, height = 5)
-
-gap_qq <- ggplot(gap_data, aes(sample = friedewald_gap)) +
-  stat_qq() +
-  stat_qq_line(color = "darkred") +
-  theme_minimal() +
-  labs(
-    title = "Normal Q-Q plot of the Friedewald gap",
-    x = "Theoretical normal quantile", y = "Observed gap (mg/dL)"
-  )
-ggsave("friedewald_gap_qq.pdf", gap_qq, width = 6, height = 5)
-
-# The histogram sits on the fitted normal curve and the Q-Q points follow the
-# reference line, so the departure from the Friedewald identity is symmetric
-# rounding error rather than a mistake in the lipid columns.
-
-# Apart from that rounding, the lipid panel obeys the Friedewald relationship
-#     total cholesterol ~ HDL + LDL + triglycerides / 5
-# which is what a real laboratory panel looks like.
+# 106 patients (1.2%) break the rule, by at most 12 mg/dL and 2 at the median.
+# The gap is centred on zero with sd 8 mg/dL, which is the rounding on each
+# result, not a mix-up. The rows stay; Section 4 flags them so Step 3 can refit
+# without them.
 #
-# This is a warning for the modelling steps, not an error to fix: the four
-# lipid columns are almost a linear combination of each other, so putting all
-# four into one regression would inflate the standard errors. Section 4 adds
-# non_hdl_cholesterol so that later steps can use one lipid summary instead.
+# But the panel does obey Friedewald, so the four lipid columns are nearly a
+# linear combination of each other. Section 4 adds one lipid summary to use in
+# their place.
 
-# 2.6 Values sitting exactly on a boundary -----------------------------------
-# When a measuring device or the data provider truncates a variable, the
-# extreme value is repeated far more often than its neighbours. We count the
-# ties at each observed minimum and maximum.
+# 2.5 Truncated columns ------------------------------------------------------
+# A truncated variable repeats its extreme value far more often than its
+# neighbours, so count the ties at each observed minimum and maximum.
 
 boundary_report <- data.frame(
   variable = numeric_raw,
@@ -205,27 +125,15 @@ boundary_report <- data.frame(
 )
 boundary_report
 
-# Two kinds of pile-up show up, and only one of them is an artefact.
-#
-#   Real zeros. st_depression has 193 patients at 0.00 and
-#   exercise_minutes_per_week has 146 at 0. Both are meaningful: no ST
-#   depression during the test, and no exercise at all in a week. Nothing to
-#   correct, but the two variables are therefore not continuous at their lower
-#   end, which matters for the normality comments in Step 2.
-#
-#   Recording limits. max_heart_rate_achieved stops at exactly 210 bpm for 115
-#   patients, triglycerides at 35 mg/dL for 114, bmi at 15 for 82, hba1c at 4.0
-#   for 64 and ldl at 35 for 56 - far more ties than the neighbouring values
-#   carry. The source truncated these five columns, so their extreme tail is
-#   compressed. We keep the values as they are, because replacing or deleting
-#   them would invent information, and Step 2 reports the shape of these
-#   distributions with the ceiling / floor stated.
+# Real zeros: st_depression (193) and exercise_minutes_per_week (146), so
+# neither is continuous at its lower end. Recording limits:
+# max_heart_rate_achieved 115 ties at 210 bpm, triglycerides 114 at 35 mg/dL,
+# bmi 82 at 15, hba1c 64 at 4.0, ldl 56 at 35. Those five have a compressed
+# tail; the values are kept and Step 2 states the ceiling or floor.
 
-# 2.7 Outliers ---------------------------------------------------------------
-# We count how many observations lie beyond the 1.5 IQR fences, but we do NOT
-# winsorize them. In a clinical dataset a systolic pressure of 181 mmHg or an
-# HbA1c of 8.6 % is exactly the kind of patient the study is about; pulling
-# those values back to the fence would erase the signal we want to model.
+# 2.6 Outliers ---------------------------------------------------------------
+# Counted but NOT winsorized. A systolic of 181 mmHg is the patient the study
+# is about; clamping it to the fence would erase the signal.
 
 count_iqr_outliers <- function(x) {
   quartiles <- quantile(x, c(0.25, 0.75))
@@ -234,55 +142,35 @@ count_iqr_outliers <- function(x) {
 }
 sapply(raw[numeric_raw], count_iqr_outliers)
 
-# The counts run from 0 to 485 per column (5.4 % of the rows at worst, for
-# st_depression, and 431 for alcohol_units_per_week). Both of those are
-# right-skewed variables with a large group of patients at zero, so the 1.5 IQR
-# fence is not a meaningful cut-off for them - it flags the whole upper tail of
-# a skewed distribution, not a set of errors. Every flagged value survived the
-# range and contradiction checks above, so all rows are retained.
-
 raw |>
   select(all_of(numeric_raw)) |>
   pivot_longer(everything(), names_to = "variable", values_to = "value") |>
   ggplot(aes(y = value)) +
   geom_boxplot() +
   facet_wrap(~variable, scales = "free_y") +
-  labs(
-    title = "Distribution of every numerical variable before cleaning",
-    y = "Observed value"
-  ) +
+  labs(title = "Every numerical variable before cleaning", y = "Observed value") +
   theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 ggsave("numeric_boxplots.pdf", width = 11, height = 7)
 
+# 0 to 485 per column, worst for st_depression (5.4%) and alcohol (431). Both
+# are right skewed with a large group at zero, so the fence flags the upper
+# tail rather than errors. All rows are retained.
+
 # ---------------------------------------------------------------------------
-# 3. Giving the columns their correct type
+# 3. Column types
 # ---------------------------------------------------------------------------
-# read.csv imported the categories as plain text, which would let R treat them
-# as arbitrary strings. We convert them to factors and fix the reference level
-# of each one to the group the interpretation should be relative to (the
-# healthy or unexposed group), so the coefficients in Step 3 read naturally.
-#
-# Every factor here is an UNORDERED factor, even where the levels have a
-# natural order (Never < Former < Current, Normal < Elevated < ...). The level
-# order is still declared, so tables and plots come out in the right sequence,
-# but R is told not to treat the variable as ordinal. The reason is the coding
-# used inside a model: an unordered factor with k levels enters lm / glm / aov
-# as k - 1 dummy (indicator) variables against the reference level, which is
-# the coding this course teaches for categorical predictors. An ordered factor
-# would instead be expanded into orthogonal polynomial contrasts (.L, .Q, .C),
-# a coding the course does not cover, and its coefficients would no longer read
-# as "this level versus the reference level".
+# Every factor is UNORDERED, with the level order declared and the reference
+# level set to the healthy or unexposed group. An unordered factor enters
+# lm / glm / aov as dummy variables against that reference; an ordered one
+# would give polynomial contrasts (.L, .Q, .C), whose coefficients no longer
+# read as "this level versus the reference".
 
 data <- raw |>
   mutate(
     patient_id = as.character(patient_id),
     sex = factor(sex, levels = c("Female", "Male")),
-    # Chest pain is a nominal description of the symptom, not a scale: the four
-    # labels record which of the three classic angina criteria the pain met
-    # (substernal location, brought on by exertion, relieved by rest), and
-    # "Asymptomatic" is not one end of a ruler that "Typical Angina" is at the
-    # other end of. The levels are listed with Asymptomatic first only so that
-    # it becomes the reference level of the dummy coding.
+    # Nominal, not a scale. Asymptomatic is listed first only to make it the
+    # reference level.
     chest_pain_type = factor(
       chest_pain_type,
       levels = c(
@@ -290,10 +178,6 @@ data <- raw |>
         "Atypical Angina", "Typical Angina"
       )
     ),
-    # Never < Former < Current is a genuine ordering of tobacco exposure, and
-    # the levels are declared in that order so summaries read correctly. It is
-    # still an unordered factor, so that Step 3 gets one dummy for "Former" and
-    # one for "Current", both relative to "Never".
     smoker_status = factor(
       smoker_status,
       levels = c("Never", "Former", "Current")
@@ -310,9 +194,8 @@ data <- raw |>
       wearable_owner,
       levels = c("False", "True"), labels = c("No", "Yes")
     ),
-    # The response is kept twice on purpose: the factor is what a classifier
-    # needs, the 0/1 copy is what lets us average the column to get a
-    # prevalence in Step 2.
+    # Kept twice: the factor for a classifier, the 0/1 copy so Step 2 can
+    # average the column to get a rate.
     has_heart_disease_num = has_heart_disease,
     has_heart_disease = factor(
       has_heart_disease,
@@ -323,67 +206,40 @@ data <- raw |>
 # ---------------------------------------------------------------------------
 # 4. Derived variables
 # ---------------------------------------------------------------------------
-# Each addition below either replaces a pair of strongly correlated columns
-# with the single quantity clinicians actually read, or turns a measurement
-# into the standard risk category, which makes the tables in Step 2 readable.
-# Nothing is removed - the raw columns stay in the file so that any later step
-# can go back to them.
+# Each one either replaces a pair of strongly correlated columns with the
+# quantity clinicians read, or turns a measurement into its risk category. The
+# raw columns all stay.
 
 data <- data |>
   mutate(
-    # Systolic and diastolic pressure correlate at r = 0.77. Pulse pressure,
-    # their difference, is the part of blood pressure the pair does not share
-    # and is itself a recognised cardiovascular risk marker.
+    # Systolic and diastolic correlate at r = 0.77; pulse pressure is the part
+    # they do not share.
     pulse_pressure = resting_bp_systolic - resting_bp_diastolic,
 
-    # Everything in the lipid panel except HDL, i.e. the "bad" cholesterol
-    # (LDL + VLDL) in one number. By the Friedewald identity checked in
-    # Section 2.5, total - HDL is exactly ldl + triglycerides / 5 up to the
-    # rounding of the panel, so this single column carries what the three
-    # near-collinear columns cholesterol_total, ldl and triglycerides carry
-    # between them, without the linear dependency.
+    # By the Friedewald identity this carries what cholesterol_total, ldl and
+    # triglycerides carry between them, without the linear dependency.
     non_hdl_cholesterol = cholesterol_total - hdl,
-    # Total / HDL. Reported by laboratories as the atherogenic index; it
-    # summarises the balance between the two halves of the panel rather than
-    # their level.
     cholesterol_hdl_ratio = round(cholesterol_total / hdl, 3),
 
-    # How far the heart rate can rise between rest and peak effort. This is the
-    # informative combination of the two heart-rate columns.
     heart_rate_reserve = max_heart_rate_achieved - resting_heart_rate,
 
-    # Age drives the maximum achievable heart rate (r = -0.73 with
-    # max_heart_rate_achieved). Expressing the measured peak as a percentage of
-    # the age-predicted maximum gives an age-free measure of effort tolerance;
-    # after this rescaling the correlation with age falls to -0.18.
-    #
-    # The predicted maximum is 220 - age, the formula of Fox, Naughton & Haskell
-    # (1971) that stress-test reports still print. It is a population average
-    # with a standard deviation of about 10 bpm, and it is known to overstate
-    # the maximum for the young and understate it for the old; the alternative
-    # 208 - 0.7 * age (Tanaka, Monahan & Seals, 2001) corrects that. We keep
-    # 220 - age because it is the convention the source of this dataset follows,
-    # and because the two give the same ranking of patients within an age band.
+    # Age drives the maximum achievable rate (r = -0.73), so the peak is
+    # rescaled against the age-predicted maximum 220 - age; the correlation
+    # with age then falls to -0.18.
     percent_predicted_max_hr = round(
       100 * max_heart_rate_achieved / (220 - age), 2
     ),
 
-    # WHO adult BMI categories: underweight < 18.5, normal 18.5-24.9,
-    # overweight 25.0-29.9, obese >= 30.0 kg/m2 (WHO, Obesity: preventing and
-    # managing the global epidemic, Technical Report Series 894, 2000). Used
-    # for the grouped summaries in Step 2.
+    # WHO adult BMI categories.
     bmi_category = cut(
       bmi,
       breaks = c(-Inf, 18.5, 25, 30, Inf),
       labels = c("Underweight", "Normal", "Overweight", "Obese"),
       right = FALSE
     ),
-    # Blood-pressure stages from the 2017 ACC/AHA guideline (Whelton et al.,
-    # Hypertension 71(6), 2018): normal < 120 and < 80; elevated 120-129 and
-    # < 80; stage 1 130-139 or 80-89; stage 2 >= 140 or >= 90 mmHg. The
-    # guideline places a patient in the higher of the two stages their systolic
-    # and diastolic readings imply, which is what testing the stages from the
-    # top down does here.
+    # 2017 ACC/AHA stages. The guideline takes the HIGHER of the two stages the
+    # systolic and diastolic readings imply, which is what testing from the top
+    # down does here.
     bp_category = factor(
       case_when(
         resting_bp_systolic >= 140 | resting_bp_diastolic >= 90 ~ "Hypertension stage 2",
@@ -393,9 +249,7 @@ data <- data |>
       ),
       levels = c("Normal", "Elevated", "Hypertension stage 1", "Hypertension stage 2")
     ),
-    # HbA1c thresholds for prediabetes (5.7-6.4 %) and diabetes (>= 6.5 %),
-    # from the American Diabetes Association Standards of Care, Section 2
-    # (Classification and Diagnosis of Diabetes).
+    # ADA thresholds: prediabetes 5.7-6.4%, diabetes >= 6.5%.
     glycemic_status = factor(
       case_when(
         hba1c >= 6.5 ~ "Diabetic",
@@ -409,22 +263,17 @@ data <- data |>
       breaks = c(17, 34, 49, 64, Inf),
       labels = c("18-34", "35-49", "50-64", "65+")
     ),
-    # Meeting the WHO recommendation of 150 minutes of activity per week.
+    # WHO recommendation of 150 minutes of activity per week.
     meets_activity_guideline = factor(
       if_else(exercise_minutes_per_week >= 150, "Yes", "No"),
       levels = c("No", "Yes")
     ),
-    # Marks the 106 patients whose rounded lipid results add up to slightly
-    # more than their reported total cholesterol (Section 2.5). They stay in
-    # the data; the flag exists so Step 3 can drop them once as a sensitivity
-    # check.
+    # The 106 rounding-inconsistent lipid panels of Section 2.4.
     lipid_panel_consistent = factor(
       if_else(hdl + ldl < cholesterol_total, "Yes", "No"),
       levels = c("Yes", "No")
     )
   )
-
-table(data$lipid_panel_consistent)
 
 # ---------------------------------------------------------------------------
 # 5. Checks on the cleaned data
@@ -433,36 +282,23 @@ table(data$lipid_panel_consistent)
 str(data)
 summary(data)
 
-# No factor must have been left as an ordered factor, otherwise Step 3 would
-# silently fit polynomial contrasts instead of dummy variables.
-sapply(data[sapply(data, is.factor)], is.ordered) # all FALSE
+# Must all be FALSE, or Step 3 would fit polynomial contrasts instead of dummy
+# variables.
+sapply(data[sapply(data, is.factor)], is.ordered)
 
-# The derived columns must not have introduced anything impossible.
 sum(is.na(data))
-summary(data$pulse_pressure)
-summary(data$percent_predicted_max_hr)
-summary(data$cholesterol_hdl_ratio)
-
-# Balance of the response, and of the two variables the research question will
-# most likely condition on.
 table(data$has_heart_disease)
 prop.table(table(data$has_heart_disease))
-table(data$sex, data$has_heart_disease)
-table(data$chest_pain_type, data$has_heart_disease)
 
-# About 30 % of the patients are cases. That is not balanced, but it is far
-# from the rare-event regime, so a logistic regression can be fitted on the
-# data as it stands; Step 3 only has to remember that a default 0.5 cut-off
-# favours the majority class when it reports accuracy.
+# About 30% are cases: unbalanced, but far from rare-event, so logistic
+# regression fits as it stands. Step 3 only has to remember that a 0.5 cut-off
+# favours the majority class when reporting accuracy.
 
-# Correlation between the numerical predictors, so the later steps know which
-# pairs cannot go into the same model. Written to a PDF for the report.
 numeric_clean <- c(
   numeric_raw, "pulse_pressure", "non_hdl_cholesterol",
   "cholesterol_hdl_ratio", "heart_rate_reserve", "percent_predicted_max_hr"
 )
 correlation_matrix <- cor(data[numeric_clean])
-round(correlation_matrix, 2)
 
 pdf("correlation_heatmap.pdf", width = 10, height = 9)
 correlation_matrix |>
@@ -472,14 +308,10 @@ correlation_matrix |>
   ggplot(aes(row_variable, column_variable, fill = correlation)) +
   geom_tile() +
   scale_fill_gradient2(limits = c(-1, 1)) +
-  labs(
-    title = "Pearson correlation between the numerical variables",
-    x = NULL, y = NULL
-  ) +
+  labs(title = "Correlation between the numerical variables", x = NULL, y = NULL) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 dev.off()
 
-# Pairs above |r| = 0.7, listed so Step 3 does not have to rediscover them:
 correlation_pairs <- which(
   abs(correlation_matrix) > 0.7 & upper.tri(correlation_matrix),
   arr.ind = TRUE
@@ -489,6 +321,9 @@ data.frame(
   second = colnames(correlation_matrix)[correlation_pairs[, "col"]],
   correlation = round(correlation_matrix[correlation_pairs], 3)
 )
+
+# Ten pairs exceed |r| = 0.7, in four blocks: blood pressure, the lipid panel,
+# blood sugar, and heart rate. Step 3 takes one variable per block.
 
 # ---------------------------------------------------------------------------
 # 6. Save

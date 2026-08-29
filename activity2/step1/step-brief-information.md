@@ -2,7 +2,7 @@
 
 **Script:** [`data_processing.R`](./data_processing.R)
 **Input:** `../dataset/heart_disease_risk_2026.csv`
-**Output:** `../dataset/cleaned_data.rds`, `data_inspection_log.txt`, `numeric_boxplots.pdf`, `friedewald_gap.pdf`, `friedewald_gap_qq.pdf`, `correlation_heatmap.pdf`
+**Output:** `../dataset/cleaned_data.rds`, `data_inspection_log.txt`, `numeric_boxplots.pdf`, `correlation_heatmap.pdf`
 
 ---
 
@@ -127,7 +127,7 @@ No original column is dropped, so any later step can go back to the raw measurem
 
 ## 4. Warnings carried forward to Steps 2 and 3
 
-1. **Collinear pairs.** `fasting_blood_sugar` ~ `hba1c` (r = 0.88), `cholesterol_total` ~ `ldl` (0.84), `resting_bp_systolic` ~ `resting_bp_diastolic` (0.77) and `age` ~ `max_heart_rate_achieved` (−0.73). Beyond that, the whole lipid panel satisfies total ≈ HDL + LDL + triglycerides/5, with a gap that is centred on 0 with a standard deviation of 8 mg/dL and follows a normal curve (`friedewald_gap.pdf`, `friedewald_gap_qq.pdf`), so the four lipid columns are close to linearly dependent. Putting each pair, or all four lipids, into one regression would inflate the standard errors — use one of the pair or the derived summary, and check the VIFs.
+1. **Collinear pairs.** `fasting_blood_sugar` ~ `hba1c` (r = 0.88), `cholesterol_total` ~ `ldl` (0.84), `resting_bp_systolic` ~ `resting_bp_diastolic` (0.77) and `age` ~ `max_heart_rate_achieved` (−0.73). Beyond that, the whole lipid panel satisfies total ≈ HDL + LDL + triglycerides/5, with a gap that is centred on 0 with a standard deviation of 8 mg/dL, so the four lipid columns are close to linearly dependent. Putting each pair, or all four lipids, into one regression would inflate the standard errors — use one of the pair or the derived summary, and check the VIFs.
 2. **The derived variables are collinear with their parents by construction** (`heart_rate_reserve` ~ `max_heart_rate_achieved`, r = 0.93; `non_hdl_cholesterol` ~ `cholesterol_total`, r = 0.92). They are alternatives to the raw columns, never companions to them in the same model.
 3. **Class imbalance.** 30.3 % of patients are cases. That is workable for a logistic regression as-is, but a default 0.5 cut-off favours the majority class, so accuracy alone will overstate performance — Step 3 should report sensitivity, specificity and ROC-AUC alongside it.
 4. **Truncated tails** in `max_heart_rate_achieved`, `triglycerides`, `bmi`, `hba1c` and `ldl` (see Section 2).
