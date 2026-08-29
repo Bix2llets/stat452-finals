@@ -1,37 +1,10 @@
-# =============================================================================
-# Step 3 - interaction plots (screen reading only)
-# =============================================================================
-# Companion to multi_factor_anova.R. This file draws nothing but pictures, so
-# you can eyeball which factor pairs look like they interact before reading the
-# formal tests. No model is fitted here.
-#
-# WHAT CHANGED IN THIS REVISION (see report/review-step23.md):
-#  - Uses `observed_salary_in_usd`, the untouched salary, to match Steps 2/3/4.
-#    `salary_in_usd` is the Step 1 winsorised copy and is no longer analysed.
-#  - draw_interaction() now takes a `y_lab`, so a plot can never be labelled
-#    with a scale it is not actually drawn on.
-#  - remote_ratio added (required by the brief, previously missing).
-#
-# SCALE: these plots are drawn on the RAW USD scale because that is what a
-# reader can interpret. multi_factor_anova.R fits every model on sqrt(salary)
-# and draws its own copies of these plots on that same square-root scale, so the
-# picture there matches the test there. Use this file to see the shape of the
-# pattern, and that file to see whether the shape is real.
-# =============================================================================
-
 library(ggplot2)
 
-data <- readRDS("../dataset/cleaned_data.rds")
+data <- readRDS("activity1/dataset/cleaned_data.rds")
 str(data)
 
-# Analysis response for this file. Defined once, matching Steps 2 and 3.
 data$salary <- data$observed_salary_in_usd
 
-# The plots are deliberately NOT written to disk. Step 3's committed artifact is
-# the ANOVA output (anova_output.txt), not the figures. Run via Rscript they
-# collect in a gitignored Rplots.pdf; run in RStudio they go to the Plots pane.
-# The axis / legend titles are taken from the expressions passed in, so a plot
-# never ends up labelled with the generic "X Factor" / "Trace Factor".
 draw_interaction <- function(x, line, response,
                              y_lab = "Mean salary in USD") {
   x_name <- sub("^data\\$", "", deparse(substitute(x)))
@@ -57,12 +30,6 @@ draw_interaction <- function(x, line, response,
   invisible(p)
 }
 
-# The off-diagonal cells of this cross-tab are nearly empty (US resident /
-# non-US company has 2 observations), so residence and location carry almost the
-# same information and an interaction between them cannot be estimated with any
-# power. Thus we only use one of them as a factor: company_location, the
-# location the salary is actually paid in. multi_factor_anova.R records the same
-# decision and does not fit the residence x location model.
 print(table(data$employee_residence, data$company_location,
   dnn = c("employee_residence", "company_location")
 ))

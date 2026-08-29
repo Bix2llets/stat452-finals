@@ -7,6 +7,7 @@ input_path <- file.path("activity1", "dataset", "cleaned_data.rds")
 output_path <- file.path("activity1", "step4", "continuous_salary_models.rds")
 diagnostic_path <- file.path("activity1", "step4", "mlr_diagnostics.pdf")
 salary_data <- readRDS(input_path)
+set.seed(6767)
 
 # observed_salary_in_usd is the original response. salary_in_usd is Step 1's
 # winsorised copy and is excluded as target leakage.
@@ -15,7 +16,7 @@ factor_predictors <- c(
   "experience_level", "employment_type", "company_location",
   "company_size", "role", "leadership"
 )
-predictors <- c("work_year", "remote_ratio", factor_predictors)
+predictors <- c(factor_predictors)
 required_columns <- c("source_row_id", "salary_in_usd", response, predictors)
 missing_columns <- setdiff(required_columns, names(salary_data))
 if (length(missing_columns) > 0L) {
@@ -35,13 +36,14 @@ salary_data <- salary_data[
   order(salary_data$work_year, salary_data$original_row_index, method = "radix"), ,
   drop = FALSE
 ]
+shuffle_row <- sample(nrow(data), size = 0.8 * nrow(data))
 test_year <- max(salary_data$work_year)
-training_data <- salary_data[salary_data$work_year < test_year, , drop = FALSE]
-testing_data <- salary_data[salary_data$work_year == test_year, , drop = FALSE]
-stopifnot(max(training_data$work_year) < min(testing_data$work_year))
+training_data <- salary_data[shuffle_row, ]
+testing_data <- salary_data[-shuffle_row, ]
+# stopifnot(max(training_data$work_year) < min(testing_data$work_year))
 
-unique(training_data$work_year)
-unique(testing_data$work_year)
+# unique(training_data$work_year)
+# unique(testing_data$work_year)
 # 3. Factor levels and treatment coding --------------------------------------
 
 for (variable in factor_predictors) {
@@ -73,17 +75,30 @@ treatment_contrasts <- lapply(
 
 # 4. Multiple linear regression ----------------------------------------------
 
-model_formula <- observed_salary_in_usd ~
-  work_year + experience_level + employment_type + remote_ratio +
-  company_location + company_size + role + leadership
+model_formula <- salary_in_usd ~
+  experience_level + employment_type + remote_ratio +
+  (company_location * company_size) + leadership + role
 design_formula <- ~
-  work_year + experience_level + employment_type + remote_ratio +
-    company_location + company_size + role + leadership
+  experience_level + employment_type + remote_ratio +
+    (company_location * company_size) + leadership + role
 
 multiple_linear_model <- lm(
   model_formula,
   data = training_data, contrasts = treatment_contrasts
 )
+boxcox(multiple_linear_model)
+model_formula <- sqrt(salary_in_usd) ~
+  experience_level + employment_type + remote_ratio +
+  (company_location * company_size) + leadership + role
+design_formula <- ~
+  experience_level + employment_type + remote_ratio +
+    (company_location * company_size) + leadership + role
+multiple_linear_model <- lm(
+  (model_formula),
+  data = training_data, contrasts = treatment_contrasts
+)
+boxcox(multiple_linear_model)
+summary(multiple_linear_model)
 stopifnot(
   multiple_linear_model$rank == length(coef(multiple_linear_model)),
   !anyNA(coef(multiple_linear_model))
@@ -110,35 +125,30 @@ par(mfrow = c(1, 1))
   )
 )
 
-cooks_values <- cooks.distance(multiple_linear_model)
-leverage_values <- hatvalues(multiple_linear_model)
-studentized_residuals <- rstudent(multiple_linear_model)
-influence_cutoffs <- c(
-  cooks_distance = 4 / nrow(training_data),
-  leverage = 2 * length(coef(multiple_linear_model)) / nrow(training_data),
-  absolute_studentized_residual = 3
-)
-influence_counts <- c(
-  cooks_distance = sum(cooks_values > influence_cutoffs["cooks_distance"]),
-  leverage = sum(leverage_values > influence_cutoffs["leverage"]),
-  absolute_studentized_residual = sum(
-    abs(studentized_residuals) > influence_cutoffs["absolute_studentized_residual"]
-  )
-)
-most_influential_position <- which.max(cooks_values)
-most_influential_observation <- data.frame(
-  original_row_index = training_data$original_row_index[most_influential_position],
-  source_row_id = training_data$source_row_id[most_influential_position],
-  cooks_distance = cooks_values[most_influential_position],
-  leverage = leverage_values[most_influential_position],
-  studentized_residual = studentized_residuals[most_influential_position]
-)
+# cooks_values <- cooks.distance(multiple_linear_model)
+# leverage_values <- hatvalues(multiple_linear_model)
+# studentized_residuals <- rstudent(multiple_linear_model)
+# influence_cutoffs <- c(
+#   cooks_distance = 4 / nrow(training_data),
+#   leverage = 2 * length(coef(multiple_linear_model)) / nrow(training_data),
+#   absolute_studentized_residual = 3
+# )
+# influence_counts <- c(
+#   cooks_distance = sum(cooks_values > influence_cutoffs["cooks_distance"]),
+#   leverage = sum(leverage_values > influence_cutoffs["leverage"]),
+#   absolute_studentized_residual = sum(
+#     abs(studentized_residuals) > influence_cutoffs["absolute_studentized_residual"]
+#   )
+# )
+# most_influential_position <- which.max(cooks_values)
+# most_influential_observation <- data.frame(
+#   original_row_index = training_data$original_row_index[most_influential_position],
+#   source_row_id = training_data$source_row_id[most_influential_position],
+#   cooks_distance = cooks_values[most_influential_position],
+#   leverage = leverage_values[most_influential_position],
+#   studentized_residual = studentized_residuals[most_influential_position]
+# )
 
-grDevices::pdf(diagnostic_path, width = 10, height = 8)
-old_par <- par(mfrow = c(2, 2))
-for (plot_number in c(1, 2, 3, 5)) plot(multiple_linear_model, which = plot_number)
-par(old_par)
-invisible(dev.off())
 
 # 6. LASSO with year-balanced training-only CV -------------------------------
 
