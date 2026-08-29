@@ -6,6 +6,7 @@
 #
 # Run with activity2/step1 as the working directory.
 
+# NOTE: REMOVED the cholesteol hdl ratio unless he can explain by himself, NOT AI, about the meaning of this
 library(dplyr)
 library(tidyr)
 library(ggplot2)
@@ -188,7 +189,6 @@ data <- data |>
     pulse_pressure = resting_bp_systolic - resting_bp_diastolic,
     non_hdl_cholesterol = cholesterol_total - hdl, # The hdl cholesterol is considred good, as high hdl reduces cardiac-related problems. The other are combination of the ldl (low density cholesterol) and triglicerides, whose effect badly affect the cardiovascular system.
     # We don't use the sum here since the sum would be ilkely to underestimate or overestimate the total choresterol
-    cholesterol_hdl_ratio = round(cholesterol_total / hdl, 3),
     heart_rate_difference = max_heart_rate_achieved - resting_heart_rate,
 
     # WHO adult BMI categories.
@@ -248,7 +248,7 @@ prop.table(table(data$has_heart_disease))
 
 numeric_clean <- c(
   numeric_raw, "pulse_pressure", "non_hdl_cholesterol",
-  "cholesterol_hdl_ratio", "heart_rate_difference"
+  "heart_rate_difference"
 )
 correlation_matrix <- cor(data[numeric_clean])
 
