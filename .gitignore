@@ -13,3 +13,5 @@ activity*/step*/*.csv
 activity*/step*/*.txt
 activity*/dataset/*.rds
 activity*/step*/*.rds
+ExampleCode/
+theories.md
