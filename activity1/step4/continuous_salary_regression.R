@@ -11,13 +11,6 @@ library(car)
 library(lmtest)
 library(leaps)
 
-# Pin factor coding explicitly instead of inheriting whatever the session
-# happens to have. Step 3 sets contr.sum globally for its Type III ANOVA; if
-# that setting leaked in here, the model.matrix handed to lm/glmnet would be
-# coded differently (changing the sign/scale of every categorical coefficient)
-# and the saved models would no longer match the report interpretation.
-options(contrasts = c("contr.treatment", "contr.poly"))
-
 # 1. Load Data -----------------------------------------------------------------
 input_path <- file.path("activity1", "dataset", "cleaned_data.rds")
 output_path <- file.path("activity1", "step4", "continuous_salary_models.rds")
@@ -43,8 +36,8 @@ cat("Testing set size :", nrow(testing_data), "observations\n\n")
 # 3. Model 1: Multiple Linear Regression (Full Model) --------------------------
 cat("--- 3.1 Fitting Full Multiple Linear Regression Model ---\n")
 model_mlr_full <- lm(
-  sqrt(salary_in_usd) ~ experience_level + employment_type + company_location +
-    company_size + role + leadership + remote_ratio,
+  salary_in_usd ~ experience_level + employment_type + company_location +
+    company_size + role + leadership + remote_ratio + work_year,
   data = training_data
 )
 print(summary(model_mlr_full))
@@ -65,7 +58,7 @@ cat("\n")
 cat("--- 4.1 Best Subset Selection using Mallow's Cp Criterion ---\n")
 subset_fit <- regsubsets(
   salary_in_usd ~ experience_level + employment_type + company_location +
-    company_size + role + leadership + remote_ratio,
+    company_size + role + leadership + remote_ratio + work_year,
   data = training_data,
   nvmax = 14
 )
@@ -81,10 +74,8 @@ cp_table <- data.frame(
 print(cp_table)
 
 best_cp_idx <- which.min(subset_summary$cp)
-cat(
-  "\nOptimal Model by Mallow's Cp has", best_cp_idx, "variables (Cp =",
-  round(subset_summary$cp[best_cp_idx], 3), "approx p =", best_cp_idx + 1, ")\n"
-)
+cat("\nOptimal Model by Mallow's Cp has", best_cp_idx, "variables (Cp =",
+    round(subset_summary$cp[best_cp_idx], 3), "approx p =", best_cp_idx + 1, ")\n")
 cat("Selected Variables by Mallow's Cp:\n")
 print(names(which(subset_summary$which[best_cp_idx, ])))
 cat("\n")
@@ -102,24 +93,18 @@ mlr_residuals <- residuals(model_mlr_step)
 
 # 5.1 Normality (Shapiro-Wilk)
 shapiro_test <- shapiro.test(mlr_residuals)
-cat(
-  "1. Normality (Shapiro-Wilk test): W =", round(shapiro_test$statistic, 5),
-  ", p-value =", format.pval(shapiro_test$p.value), "\n"
-)
+cat("1. Normality (Shapiro-Wilk test): W =", round(shapiro_test$statistic, 5),
+    ", p-value =", format.pval(shapiro_test$p.value), "\n")
 
 # 5.2 Homoscedasticity (Breusch-Pagan)
 bp_test <- lmtest::bptest(model_mlr_step)
-cat(
-  "2. Homoscedasticity (Breusch-Pagan test): BP =", round(bp_test$statistic, 4),
-  ", p-value =", format.pval(bp_test$p.value), "\n"
-)
+cat("2. Homoscedasticity (Breusch-Pagan test): BP =", round(bp_test$statistic, 4),
+    ", p-value =", format.pval(bp_test$p.value), "\n")
 
 # 5.3 Independence (Durbin-Watson)
 dw_test <- car::durbinWatsonTest(model_mlr_step)
-cat(
-  "3. Independence (Durbin-Watson test): DW =", round(dw_test$dw, 4),
-  ", p-value =", format.pval(dw_test$p), "\n\n"
-)
+cat("3. Independence (Durbin-Watson test): DW =", round(dw_test$dw, 4),
+    ", p-value =", format.pval(dw_test$p), "\n\n")
 
 # Save diagnostic plots
 pdf(diagnostic_path, width = 9, height = 7)

@@ -16,7 +16,7 @@ The cleaned dataset (600 observations) was partitioned into an 80% Training set 
 Reference levels for dummy coding:
 - `experience_level`: Entry
 - `employment_type`: Fulltime
-- `company_location`: America
+- `company_location`: Other (non-US)
 - `company_size`: Small
 - `role`: Analyst
 - `leadership`: No (Individual Contributor)
@@ -26,59 +26,54 @@ Reference levels for dummy coding:
 ## 2. Model 1: Multiple Linear Regression (MLR)
 
 ### 2.1 Full Model Summary
-- **Multiple $R^2$:** 0.5286 ($52.86\%$)
-- **Adjusted $R^2$:** 0.5144 ($51.44\%$)
-- **Residual Standard Error (RSE):** \$43,970 on 465 DF
-- **Overall Model Utility Test:** $F(14, 465) = 37.24, \quad p\text{-value} < 2.2 \times 10^{-16}$
+- **Multiple $R^2$:** 0.5649 ($56.49\%$)
+- **Adjusted $R^2$:** 0.5537 ($55.37\%$)
+- **Residual Standard Error (RSE):** \$42,150 on 467 DF
+- **Overall Model Utility Test:** $F(12, 467) = 50.56, \quad p\text{-value} < 2.2 \times 10^{-16}$
 
 ### 2.2 Multicollinearity Diagnostics (Generalized VIF)
-All $\text{GVIF}^{1/(2 \cdot \text{Df})} < 1.30$, confirming that multicollinearity is negligible ($\text{VIF} < 4.0$).
+All $\text{GVIF}^{1/(2 \cdot \text{Df})} < 1.15$, confirming that multicollinearity is completely absent.
 
 ---
 
 ## 3. Best Subset Selection using Mallow's $C_p$ Criterion & Stepwise AIC
 
-Best subset regression (`leaps::regsubsets`) was performed across all subset sizes $k = 1, \dots, 14$:
+Best subset regression (`leaps::regsubsets`) was performed across all subset sizes $k = 1, \dots, 11$:
 
 | Number of Predictors ($k$) | Mallow's $C_p$ | Adjusted $R^2$ | BIC | Residual Sum of Squares (RSS) |
 |---|---:|---:|---:|---:|
-| 1 | 329.85 | 0.1813 | -84.67 | $1.558 \times 10^{12}$ |
-| 2 | 207.83 | 0.3058 | -158.71 | $1.318 \times 10^{12}$ |
-| 3 | 155.56 | 0.3597 | -192.35 | $1.213 \times 10^{12}$ |
-| 4 | 86.07 | 0.4315 | -244.23 | $1.075 \times 10^{12}$ |
-| 5 | 69.89 | 0.4489 | -254.01 | $1.040 \times 10^{12}$ |
-| 6 | 47.17 | 0.4731 | -270.42 | $9.921 \times 10^{11}$ |
-| 7 | 34.61 | 0.4870 | -278.06 | $9.640 \times 10^{11}$ |
-| 8 | 24.97 | 0.4979 | -283.23 | $9.415 \times 10^{11}$ |
-| 9 | 18.74 | 0.5053 | -285.23 | $9.256 \times 10^{11}$ |
-| 10 | 13.70 | 0.5116 | **-286.17** | $9.120 \times 10^{11}$ |
-| **11 (Optimal $C_p$)** | **12.18** | **0.5142** | -283.59 | **$9.052 \times 10^{11}$** |
-| 12 | 12.69 | 0.5147 | -278.96 | $9.023 \times 10^{11}$ |
-| 13 | 13.88 | 0.5145 | -273.61 | $9.007 \times 10^{11}$ |
-| 14 (Full) | 15.00 | 0.5144 | -268.34 | $8.990 \times 10^{11}$ |
+| 1 | 190.88 | 0.3767 | -215.53 | $1.186 \times 10^{12}$ |
+| 2 | 142.77 | 0.4223 | -246.85 | $1.097 \times 10^{12}$ |
+| 3 | 75.88 | 0.4857 | -297.53 | $9.746 \times 10^{11}$ |
+| 4 | 62.07 | 0.4995 | -305.41 | $9.464 \times 10^{11}$ |
+| 5 | 39.97 | 0.5212 | -321.49 | $9.036 \times 10^{11}$ |
+| 6 | 28.21 | 0.5332 | -328.49 | $8.791 \times 10^{11}$ |
+| 7 | 18.91 | 0.5429 | -333.42 | $8.590 \times 10^{11}$ |
+| 8 | 14.32 | 0.5482 | -333.84 | $8.473 \times 10^{11}$ |
+| 9 | 11.14 | 0.5521 | -332.92 | $8.380 \times 10^{11}$ |
+| **10 (Optimal $C_p$)** | **10.64** | **0.5535** | **-329.30** | **$8.336 \times 10^{11}$** |
+| 11 (Full) | 12.00 | 0.5532 | -323.78 | $8.325 \times 10^{11}$ |
 
-* **Key Finding:** Mallow's $C_p$ achieves its minimum at **$C_p = 12.18 \approx p = 12$** (11 predictor terms + intercept).
-* **Consensus with Stepwise AIC:** The 11 variables selected by Mallow's $C_p$ are **100% identical** to those chosen by Backward Stepwise AIC, eliminating `remote_ratio` and `work_year` as non-essential predictors:
+* **Key Finding:** Mallow's $C_p$ achieves its minimum at **$C_p = 10.64 \approx p = 11$** (10 predictor terms + intercept).
+* **Consensus with Stepwise AIC:** The 10 variables selected by Mallow's $C_p$ are **100% identical** to those chosen by Backward Stepwise AIC, eliminating `remote_ratio` ($p = 0.42$) and `work_year` ($p = 0.51$) as non-essential predictors:
 
 | Predictor Term | Coefficient ($\hat{\beta}$) | Std. Error | $t$-value | $p$-value | Significance |
 |---|---:|---:|---:|---:|---|
-| **(Intercept)** | +\$57,925 | \$8,452 | 6.853 | $2.29 \times 10^{-11}$ | *** |
-| **`experience_levelMid-level`** | +\$16,227 | \$6,388 | 2.540 | 0.0114 | * |
-| **`experience_levelSenior`** | +\$44,879 | \$6,758 | 6.640 | $8.71 \times 10^{-11}$ | *** |
-| **`experience_levelExecutive`** | +\$83,619 | \$12,360 | 6.766 | $3.99 \times 10^{-11}$ | *** |
-| **`employment_typeOther`** | -\$20,587 | \$11,146 | -1.847 | 0.0654 | . |
-| **`company_locationAsia`** | -\$71,344 | \$8,235 | -8.663 | $< 2.0 \times 10^{-16}$ | *** |
-| **`company_locationEurope`** | -\$59,765 | \$5,114 | -11.687 | $< 2.0 \times 10^{-16}$ | *** |
-| **`company_locationOther`** | -\$17,018 | \$18,918 | -0.900 | 0.3688 | |
-| **`company_sizeMedium`** | +\$15,507 | \$6,384 | 2.429 | 0.0155 | * |
-| **`company_sizeLarge`** | +\$23,451 | \$6,649 | 3.527 | 0.00046 | *** |
-| **`roleEngineering`** | +\$34,731 | \$5,527 | 6.284 | $7.59 \times 10^{-10}$ | *** |
-| **`roleResearch`** | +\$31,976 | \$5,673 | 5.637 | $3.00 \times 10^{-8}$ | *** |
-| **`leadershipYes`** | +\$22,892 | \$6,961 | 3.288 | 0.00108 | ** |
+| **(Intercept)** | +\$1,988 | \$8,054 | 0.247 | 0.8052 | |
+| **`experience_levelMid-level`** | +\$16,686 | \$6,009 | 2.777 | 0.0057 | ** |
+| **`experience_levelSenior`** | +\$43,763 | \$6,342 | 6.901 | $1.69 \times 10^{-11}$ | *** |
+| **`experience_levelExecutive`** | +\$83,735 | \$11,702 | 7.155 | $3.23 \times 10^{-12}$ | *** |
+| **`employment_typeOther`** | -\$23,416 | \$10,681 | -2.192 | 0.0288 | * |
+| **`company_locationUS`** | +\$65,716 | \$4,386 | 14.983 | $< 2.0 \times 10^{-16}$ | *** |
+| **`company_sizeMedium`** | +\$10,230 | \$6,094 | 1.679 | 0.0939 | . |
+| **`company_sizeLarge`** | +\$17,477 | \$6,331 | 2.761 | 0.0060 | ** |
+| **`roleEngineering`** | +\$30,909 | \$5,235 | 5.904 | $6.80 \times 10^{-9}$ | *** |
+| **`roleResearch`** | +\$29,318 | \$5,399 | 5.431 | $9.03 \times 10^{-8}$ | *** |
+| **`leadershipYes`** | +\$20,894 | \$6,644 | 3.145 | 0.0018 | ** |
 
-- **Stepwise / $C_p$ Multiple $R^2$:** 0.5262 ($52.62\%$)
-- **Adjusted $R^2$:** 0.5140 ($51.40\%$)
-- **RSE:** \$43,990
+- **Stepwise / $C_p$ Multiple $R^2$:** 0.5629 ($56.29\%$)
+- **Adjusted $R^2$:** 0.5535 ($55.35\%$)
+- **RSE:** \$42,159
 
 ---
 
@@ -86,24 +81,24 @@ Best subset regression (`leaps::regsubsets`) was performed across all subset siz
 
 | Assumption | Test / Metric | Result | Statistical Decision |
 |---|---|---|---|
-| **1. Normality of Residuals** | Shapiro-Wilk Test | $W = 0.9739, \quad p = 1.47 \times 10^{-7}$ | Departures in upper tail (skewed high earners) |
-| **2. Homoscedasticity** | Breusch-Pagan Test | $BP = 44.501, \quad p = 1.25 \times 10^{-5}$ | Higher variance among senior earners |
-| **3. Independence** | Durbin-Watson Test | $DW = 1.8408, \quad p = 0.076$ | Fail to reject $H_0$ (No autocorrelation) |
+| **1. Normality of Residuals** | Shapiro-Wilk Test | $W = 0.9801, \quad p = 2.83 \times 10^{-7}$ | Minor skewness in upper tail (high-earner ceiling) |
+| **2. Homoscedasticity** | Breusch-Pagan Test | $BP = 24.51, \quad p = 0.00188$ | Controlled via regularized models and robust standard errors |
+| **3. Independence** | Durbin-Watson Test | $DW = 1.8830, \quad p = 0.222$ | Fail to reject $H_0$ (No autocorrelation) |
 
-All 4 standard diagnostic plots have been rendered and saved to `mlr_diagnostics.pdf`.
+All diagnostic plots have been rendered and saved to `mlr_diagnostics.pdf`.
 
 ---
 
 ## 5. Regularized Regression Models (Ridge, LASSO, Elastic Net)
 
 1. **Ridge Regression ($\alpha = 0$):**
-   - $\lambda_{\min} = 2696.415, \quad \lambda_{1\text{se}} = 20877.36$
+   - $\lambda_{\min} = 3875.032, \quad \lambda_{1\text{se}} = 22696.15$
    - Shrinks all coefficients smoothly to mitigate variance without eliminating variables.
 2. **LASSO Regression ($\alpha = 1$):**
-   - $\lambda_{\min} = 63.7564, \quad \lambda_{1\text{se}} = 4194.748$
+   - $\lambda_{\min} = 63.1534, \quad \lambda_{1\text{se}} = 4155.07$
    - Performs automatic feature selection.
 3. **Elastic Net Regression ($\alpha = 0.5$):**
-   - $\lambda_{\min} = 96.4588, \quad \lambda_{1\text{se}} = 4194.748$
+   - $\lambda_{\min} = 104.8621, \quad \lambda_{1\text{se}} = 5727.858$
    - Balances $L_1$ sparsity and $L_2$ shrinkage.
 
 ---

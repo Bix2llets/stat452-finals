@@ -15,3 +15,5 @@ activity*/dataset/*.rds
 activity*/step*/*.rds
 ExampleCode/
 theories.md
+final_report/
+*.pdf
