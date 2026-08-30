@@ -41,12 +41,6 @@ ggplot(data, aes(sample = salary)) +
   stat_qq_line() +
   labs(x = "Theoretical quantiles", y = "Salary in USD") +
   theme_classic()
-ggsave("pre_salary_qq.pdf")
-ggplot(data, aes(sample = salary_in_usd)) +
-  stat_qq() +
-  stat_qq_line() +
-  labs(x = "Theoretical quantiles", y = "Salary in USD") +
-  theme_classic()
 ggsave("salary_qq.pdf")
 
 ggplot(data, aes(sample = sqrt(salary))) +
@@ -54,14 +48,8 @@ ggplot(data, aes(sample = sqrt(salary))) +
   stat_qq_line() +
   labs(x = "Theoretical quantiles", y = "sqrt(Salary in USD)") +
   theme_classic()
-ggsave("pre_salary_sqrt_qq.pdf")
-
-ggplot(data, aes(sample = sqrt(salary_in_usd))) +
-  stat_qq() +
-  stat_qq_line() +
-  labs(x = "Theoretical quantiles", y = "sqrt(Salary in USD)") +
-  theme_classic()
 ggsave("salary_sqrt_qq.pdf")
+
 print(shapiro.test(data$salary))
 print(jarque.bera.test(data$salary))
 print(shapiro.test(sqrt(data$salary)))
@@ -121,8 +109,7 @@ ggplot(data, aes(salary, employee_residence)) +
   theme_classic()
 ggsave("salary_by_employee_residence.pdf")
 
-# We can conclude that those living in America continent get paid the most, then the europe, then the asia. In other continents, it is inconclusive.
-
+# We can conclude that those living in US continent get paid more than other
 print(table(data$company_location))
 ggplot(data, aes(salary, company_location)) +
   geom_boxplot() +
@@ -130,7 +117,7 @@ ggplot(data, aes(salary, company_location)) +
   theme_classic()
 ggsave("salary_by_company_location.pdf")
 
-# We can conclude that those working in America continent get paid the most, then the europe, then the asia. In other continents, it is inconclusive.
+# We can conclude that those working in US continent get paid more than others
 
 print(table(data$employee_residence, data$company_location,
   dnn = c("employee_residence", "company_location")

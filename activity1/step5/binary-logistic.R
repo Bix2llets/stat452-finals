@@ -3,6 +3,9 @@ if (!file.exists(data_path)) data_path <- "../dataset/cleaned_data.rds"
 logistic_data <- readRDS(data_path)
 library(tidyverse)
 
+options(contrasts = c("contr.treatment", "contr.poly"))
+
+
 #
 cutoff <- quantile(logistic_data$salary_in_usd, 0.75)
 logistic_data <- logistic_data |> mutate(
@@ -56,6 +59,6 @@ saveRDS(role_senior_env_model, out_path)
 # After removal:
 # As the seniority increases, the likelihood of falling into the top 25% salary bracket increases by 10.86 times
 # Being at engineering role multiplies the odds by 6.75 times, while being at research role multiplies the odds by 5.88
-# Being at leadership would multiplies the odds by 2.43
+# Being at leadership would multiplies the odds by 3.50
 # As the company size increases, the odds of having salaries falling into top 25% multiplies by 2.29
-# The odds of having top tier salary when working at US companies is 16.41 times the odd when working at non-US companies.
+# The odds of having top tier salary when working at US companies is 15.87 times the odd when working at non-US companies.

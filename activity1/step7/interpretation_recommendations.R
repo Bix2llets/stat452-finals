@@ -64,10 +64,12 @@ print(df_odds, row.names = FALSE)
 cat("\n")
 
 # 3. Barplot of Feature Importance (MLR Coefficients) --------------------------
-plot_importance <- df_mlr_sig %>%
-  filter(Term != "(Intercept)") %>%
-  mutate(Effect = ifelse(Estimate > 0, "Positive Impact (+)", "Negative Impact (-)"),
-         Term = reorder(Term, Estimate))
+plot_importance <- df_mlr_sig |>
+  filter(Term != "(Intercept)") |>
+  mutate(
+    Effect = ifelse(Estimate > 0, "Positive Impact (+)", "Negative Impact (-)"),
+    Term = reorder(Term, Estimate)
+  )
 
 p_importance <- ggplot(plot_importance, aes(x = Term, y = Estimate, fill = Effect)) +
   geom_col() +

@@ -11,6 +11,13 @@ library(car)
 library(lmtest)
 library(leaps)
 
+# Pin factor coding explicitly instead of inheriting whatever the session
+# happens to have. Step 3 sets contr.sum globally for its Type III ANOVA; if
+# that setting leaked in here, the model.matrix handed to lm/glmnet would be
+# coded differently (changing the sign/scale of every categorical coefficient)
+# and the saved models would no longer match the report interpretation.
+options(contrasts = c("contr.treatment", "contr.poly"))
+
 # 1. Load Data -----------------------------------------------------------------
 input_path <- file.path("activity1", "dataset", "cleaned_data.rds")
 output_path <- file.path("activity1", "step4", "continuous_salary_models.rds")

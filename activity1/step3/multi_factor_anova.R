@@ -155,6 +155,12 @@ print(table(data$employee_residence, data$company_location,
 
 data$remote_ratio_f <- factor(data$remote_ratio)
 draw_interaction(x = data$remote_ratio_f, line = data$company_location, response = sqrt(data$salary))
+model <- lm(sqrt(salary) ~ remote_ratio_f * company_location, data = data)
+plot_diagnostic(model)
+het <- report_model(model)
+# Only the company location is important
+simple_effects(model, ~ remote_ratio_f * company_location, "company_location", het)
+# Companies that are in the US pays more than those at other countries for all remote ratio.
 draw_interaction(x = data$experience_level, line = data$leadership, response = sqrt(data$salary))
 
 # They have missing values
@@ -188,9 +194,8 @@ het <- report_model(model)
 simple_effects(model, ~ role * company_location, "company_location", het)
 simple_effects(model, ~ role * company_location, "role", het)
 # An interaction here
-# Overall, the salary in US are higher than the salary in all other countries at all roles, then the Europe,
-
-# In every continents, data analyst is the one with least salary, while engineering and research's are high. However, the amount is different per continent.
+# Overall, the salary in US are higher than the salary in all other countries at all roles
+# In every continents, data analyst is the one with least salary, while engineering and research's are high. Between engineering and research, there are no difference. However, the difference between analyst and the other roles is different per continent, where the difference is 16k - 20k in other countries and 33k in the US
 
 
 draw_interaction(x = data$work_year_f, line = data$experience_level, response = sqrt(data$salary))
@@ -206,7 +211,7 @@ model <- lm(sqrt(salary) ~ work_year_f * company_location, data = data)
 plot_diagnostic(model)
 het <- report_model(model)
 simple_effects(model, ~ work_year_f * company_location, "work_year_f", het)
-# In "Other" continent group, there are an increment in salary between 2021 and 2022. HOwever, the sample size for them are small.
+# In the US, there are no difference in salary across years. Hoever, in other countries, there is an increase of 14k USD between 2021 and 2022
 
 draw_interaction(x = data$work_year_f, line = data$company_size, response = sqrt(data$salary))
 model <- lm(sqrt(salary) ~ work_year_f * company_size, data = data)

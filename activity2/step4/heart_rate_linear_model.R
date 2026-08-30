@@ -55,10 +55,6 @@ write.csv(
 # 18 of 22 coefficients are significant and the fit explains 57.5% of the
 # training variance; age alone costs 1.08 bpm of working range per year.
 
-linear_model <- step(
-  linear_model,
-  direction = "backward", k = selection_penalty, trace = 0
-)
 # Reducing the variables in the model
 # 4b.2 Regression assumptions --------------------------------------------------
 # Least squares needs constant residual variance, roughly normal residuals and
@@ -99,7 +95,9 @@ cat("predictors with VIF > 5:", sum(inflation_scores > 5), "\n")
 pdf("heart_rate_diagnostics.pdf", width = 8, height = 8)
 par(mfrow = c(2, 2))
 plot(linear_model)
+par(mfrow = c(1, 1))
 dev.off()
+# No patterns in residual, almost normal, no high leverage points
 
 # 4b.3 Backward variable selection ---------------------------------------------
 # Backward elimination removes one term at a time - each time the one whose
@@ -109,6 +107,10 @@ dev.off()
 # The full fit leaves four insignificant coefficients, so ask how much of the
 # model is actually carrying the response, then check the whole removed block
 # with one F test rather than trusting a chain of separate decisions.
+reduced_linear_model <- step(
+  linear_model,
+  direction = "backward", k = selection_penalty, trace = 0
+)
 linear_dropped <- setdiff(
   regression_predictors, attr(terms(reduced_linear_model), "term.labels")
 )
@@ -162,10 +164,6 @@ penalty_selection <- data.frame(
 )
 print(penalty_selection, row.names = FALSE)
 write.csv(penalty_selection, "heart_rate_penalty_selection.csv", row.names = FALSE)
-# Pure ridge is the worst rung (246.46); everything from alpha = 0.1 up sits
-# within 0.005 of the winner at 0.4, so what helps is having some L1 at all,
-# not the exact mixture - which is also why fixing 0.5 by hand cannot be
-# defended: on this data the evidence points at 0.4.
 
 best_position <- which.min(penalty_selection$cv_mean_squared_error)
 best_alpha <- penalty_selection$alpha[best_position]
@@ -194,6 +192,7 @@ cat(
 # The curve shows whether lambda.min sits in a flat region, where a larger
 # penalty costs almost nothing, or at a sharp minimum.
 pdf("heart_rate_cv_curve.pdf", width = 7, height = 5)
+par(mfrow = c(1, 1))
 plot(elastic_fit)
 title(paste("Elastic net, cross-validated alpha =", best_alpha), line = 2.5)
 dev.off()

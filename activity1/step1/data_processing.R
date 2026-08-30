@@ -86,23 +86,17 @@ data <- (data |> mutate(
     .default = "Other",
     str_detect(employment_type, "FT") ~ "Fulltime"
   ),
-  company_continent = countrycode(company_location, origin = "iso2c", destination = "continent"),
 
   # Then map it to your specific categories
   company_location = case_when(
-    company_continent == "Americas" ~ "America",
-    company_continent == "Europe" ~ "Europe",
-    company_continent == "Asia" ~ "Asia",
+    company_location == "US" ~ "US",
     .default = "Other" # This will catch Africa, Oceania, and missing matches
   ),
-  employee_continent = countrycode(employee_residence, origin = "iso2c", destination = "continent"),
   employee_residence = case_when(
-    employee_continent == "Americas" ~ "America",
-    employee_continent == "Europe" ~ "Europe",
-    employee_continent == "Asia" ~ "Asia",
-    .default = "Other"
+    employee_residence == "US" ~ "US",
+    .default = "Other" # This will catch Africa, Oceania, and missing matches
   )
-)) |> select(-employee_continent, -company_continent)
+))
 
 
 # Seven management titles cannot be assigned to one of the three functional
@@ -159,7 +153,7 @@ data <- data |>
   mutate(company_location = as.factor(company_location)) |>
   mutate(company_size = factor(company_size, ordered = TRUE, labels = c("Small", "Medium", "Large"))) |>
   mutate(role = as.factor(role)) |>
-  mutate(leadership = factor(leadership, ordered = TRUE, labels = c("No", "Yes")))
+  mutate(leadership = factor(leadership, ordered = FALSE, labels = c("No", "Yes")))
 
 
 

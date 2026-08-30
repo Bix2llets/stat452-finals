@@ -1,22 +1,6 @@
-# Activity 2 - Step 4c: Which clinical and lifestyle variables raise the odds
-# of heart disease? Ordinary binary logistic regression, backward elimination,
-# and the surviving effects read as odds ratios.
-#
-# Input : ../dataset/cleaned_data.rds via data_preparation.R
-# Output: heart_disease_odds_ratios.csv,
-#         heart_disease_predictions.rds (read by model_evaluation.R)
-#
-# Run with activity2/step4 as the working directory.
-
 source("activity2/step4/data_preparation.R")
 
 # 4c.1 Ordinary binary logistic regression -------------------------------------
-# Logistic regression models the log-odds of the diagnosis as a linear function
-# of the predictors, so exp(coefficient) is the odds ratio per unit. Linear
-# regression is not an option: it would return probabilities outside [0, 1].
-# Fit the full model on the training rows, then read which terms are
-# distinguishable from zero by their Wald z tests. No penalty is used: shrinkage
-# would remove the standard errors the odds ratios are read from.
 logistic_data <- training_data[c(predictors, "has_heart_disease_num")]
 logistic_model <- glm(
   has_heart_disease_num ~ .,
@@ -28,12 +12,6 @@ logistic_summary
 # large amount of information about the diagnosis.
 
 # 4c.2 Backward variable selection ---------------------------------------------
-# The same search the regression uses, except the cost of a deletion here is the
-# rise in deviance - chi-square on the coefficients removed - so the same k
-# keeps the rule at the 5% level. `step`'s default k = 2 is far weaker: at 7,200
-# patients it keeps everything with a p-value under roughly 0.16.
-# Print what the default would have kept, so the stricter setting is a shown
-# choice rather than a silent one.
 permissive_model <- step(logistic_model, direction = "backward", trace = 0)
 reduced_model <- step(
   logistic_model,
@@ -44,6 +22,7 @@ cat(
   "predictors; at the 5% level it keeps",
   length(attr(terms(reduced_model), "term.labels")), "\n"
 )
+summary(reduced_model)
 droppable <- setdiff(predictors, attr(terms(reduced_model), "term.labels"))
 cat(
   "backward elimination dropped", length(droppable), "of", length(predictors),
@@ -56,20 +35,16 @@ cat(
   " on", deviance_test[2, "Df"], "df, p =",
   round(deviance_test[2, "Pr(>Chi)"], 4), "\n"
 )
-# The same three the regression lost, bar exercise minutes for daily steps.
-# Removing them together costs X2 = 6.76 on 3 df (p = 0.080), short of the 5%
-# cut, so the smaller model is the one to interpret.
-
 # 4c.3 Odds ratios --------------------------------------------------------------
 # exp(coefficient) is the odds ratio, and exp of the Wald interval gives its
 # confidence interval; an interval covering 1 means no detected effect.
 # Per one unit hides predictors measured in small steps - one extra daily step
 # moves nothing - so also report a one-standard-deviation move, which is
 # comparable with a dummy's full 0 -> 1 step.
-model_terms <- names(coef(reduced_model))[-1]
-predictor_sd <- apply(model.matrix(reduced_model)[, -1, drop = FALSE], 2, sd)
-step_size <- ifelse(model_terms %in% numeric_predictors, predictor_sd[model_terms], 1)
-wald_interval <- confint.default(reduced_model, level = 1 - significance_level)
+(model_terms <- names(coef(reduced_model))[-1])
+(predictor_sd <- apply(model.matrix(reduced_model)[, -1, drop = FALSE], 2, sd))
+(step_size <- ifelse(model_terms %in% numeric_predictors, predictor_sd[model_terms], 1))
+(wald_interval <- confint.default(reduced_model, level = 1 - significance_level))
 
 odds_ratio_table <- data.frame(
   variable = model_terms,
@@ -86,10 +61,15 @@ odds_ratio_table <- odds_ratio_table[
 ]
 print(odds_ratio_table, row.names = FALSE)
 write.csv(odds_ratio_table, "heart_disease_odds_ratios.csv", row.names = FALSE)
-# Exercise-induced angina multiplies the odds by 9.22 with everything else held
-# fixed, but per standard deviation the exercise test dominates: 21.3 bpm more
-# peak heart rate multiplies the odds by 0.070. These are associations in
-# observational data, not effects of changing the variable.
+# The exercise indudced angina is the strongest sign of having heart disease: having it would cause the odds ratio to increase by 9.68 times.
+# Smoking increases the odds of having heart disease by 2.71 times compared to never smoked people . It is alleviated by quitting, which reduced the increment in odds to just 1.46 times never smoked people
+# Each 1.1 hours of sleep leads to a 10% drops in odds
+# Having chest pain is a sign of having heart disease, where the odds of having disease is increased by 4.788, 2.091 and 1.221 times they have typical angina, atypical angina and non anginal pain, compared to asymptomatic pains
+# for each 2170 steps of walking every day the odds of having disease is reduced by 10%
+# Male has their odd of having disaese 1.65 times more than female.
+# Strangely, the increasing age reduces the odds of having heart disease, in contrary to the anova result on age group, when the other conditions are kept as-is.
+# This can be explained as with the same health condition, the older people are considered "healthier" than the young one with the sahme condition, thus their odds of having disease is reduced.
+# For each 21 bpm more in max heart rate, the odds of having heart disease is mutiplied by 0.07. This is the sign of a healthy heart that can works more, thus less prone to diseases
 
 # 4c.4 Held-out probabilities for the evaluation -------------------------------
 # The model returns a probability per patient; turning it into a prediction

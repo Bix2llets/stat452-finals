@@ -93,12 +93,6 @@ regression_predictors <- setdiff(
   predictors, c("resting_heart_rate", "max_heart_rate_achieved")
 )
 
-# 4a.3 The shared train / test split -------------------------------------------
-# Both models are fitted on the same training rows and scored on the same
-# held-out rows, so the evaluation measures the model and not the split.
-# 80 / 20: with 9,000 patients that still leaves 1,800 held-out rows, enough to
-# score a classifier on, while giving every fit more to learn from. The seed is
-# what makes the two scripts see the same split.
 set.seed(6767)
 training_rows <- sample(nrow(data), round(0.8 * nrow(data)))
 training_data <- data[training_rows, ]

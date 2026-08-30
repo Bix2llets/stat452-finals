@@ -9,6 +9,7 @@
 # Run with activity2/step4 as the working directory, after
 # heart_rate_linear_model.R and heart_disease_logistic_model.R.
 
+library(pROC)
 heart_rate <- readRDS("heart_rate_predictions.rds")
 heart_disease <- readRDS("heart_disease_predictions.rds")
 cat(
@@ -46,10 +47,10 @@ regression_comparison$model[
 ] <- paste0("elastic net (cross-validated alpha = ", heart_rate$best_alpha, ")")
 print(regression_comparison, row.names = FALSE)
 write.csv(regression_comparison, "heart_rate_model_comparison.csv", row.names = FALSE)
-# All five land within 0.03 bpm of each other (RMSE 15.962-15.993, R-squared
-# 0.548-0.550). With 7,200 training rows against 19 columns least squares is not
-# overfitting, so there is no variance for a penalty to buy back; what selection
-# buys here is a smaller model to report, not a more accurate one.
+
+# The selection reduces the number of variables in the model, while gaining a minimal R-squared value.
+# Compared to LASSO and elastic net, it achieve the same explanatory power by explaining the same variance, yet it is easier to intepret.
+# Therefore, we will choose the backward eliminated model
 
 # 4d.2 The logistic fit at the usual cutoff ------------------------------------
 # A predicted probability becomes a prediction only after a cutoff. At 0.5 the
@@ -85,8 +86,32 @@ confusion_matrix <- table(
 print(confusion_matrix)
 write.csv(as.data.frame.matrix(confusion_matrix), "heart_disease_confusion_matrix.csv")
 print(score_classification(0.5), row.names = FALSE)
+roc_object <- roc(actual, predicted_probability)
+roc_data <- data.frame(
+  Sensitivity = roc_object$sensitivities,
+  # Convert Specificity to False Positive Rate
+  FalsePositiveRate = 1 - roc_object$specificities
+)
+
+# 2. Plot with standard ggplot2 syntax
+ggplot(roc_data, aes(x = FalsePositiveRate, y = Sensitivity)) +
+  geom_line(color = "steelblue", linewidth = 1) +
+  # Add diagonal random-guess line
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "darkgrey") +
+  theme_minimal() +
+  labs(
+    title = "ROC Curve",
+    subtitle = paste("AUC =", round(roc_object$auc, 3)),
+    x = "False Positive Rate (1 - Specificity)",
+    y = "True Positive Rate (Sensitivity)"
+  )
+
 # 90.1% accuracy on rows the model never saw, but sensitivity (80.3%) trails
 # specificity (94.5%): it misses more true cases than it misflags healthy ones.
+# AUC is 0.955: given two positive and negative cases, the probability that is predicts correctly is 95.5%
+# This make the model has high accuracy, but is not trustworthy for predicitng heart disease: the 10% missing from accuracy and 20$ missing from sensitivity make it dangerous to be used,
+# as it would predict 1/5 of those having heart disease as healthy
+# Therefore, we need to find another cutoff prediction value or another method to better predict the heart disease, prefereably one with higher sensitivity
 
 # 4d.3 The cutoff is a choice --------------------------------------------------
 # Lowering the cutoff flags more patients: sensitivity rises and specificity
