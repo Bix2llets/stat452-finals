@@ -86,20 +86,14 @@ eval_regression <- function(actual, predicted, model_name) {
   )
 }
 
-# 3. Compute metrics for all regression models (MLR, Polynomial, Ridge, LASSO, Elastic Net)
+# 3. Compute metrics for all 4 regression models (MLR, Ridge, LASSO, Elastic Net)
 eval_mlr <- eval_regression(actual_y, test_preds$mlr_stepwise, "1. MLR (Stepwise AIC / Mallow's Cp)")
-eval_poly <- eval_regression(actual_y, test_preds$polynomial, "2. Polynomial MLR (Degree 2)")
-eval_ridge <- eval_regression(actual_y, test_preds$ridge, "3. Ridge Regression (alpha = 0)")
-eval_lasso <- eval_regression(actual_y, test_preds$lasso, "4. LASSO Regression (alpha = 1)")
-eval_elastic_05 <- eval_regression(actual_y, test_preds$elastic_net_05, "5. Elastic Net (alpha = 0.5)")
-eval_elastic_opt <- eval_regression(
-  actual_y,
-  test_preds$elastic_net_optimal,
-  paste0("6. Optimal Elastic Net (alpha = ", continuous_bundle$best_alpha, ")")
-)
+eval_ridge <- eval_regression(actual_y, test_preds$ridge, "2. Ridge Regression (alpha = 0)")
+eval_lasso <- eval_regression(actual_y, test_preds$lasso, "3. LASSO Regression (alpha = 1)")
+eval_elastic <- eval_regression(actual_y, test_preds$elastic_net, "4. Elastic Net (alpha = 0.5)")
 
 regression_comparison_table <- rbind(
-  eval_mlr, eval_poly, eval_ridge, eval_lasso, eval_elastic_05, eval_elastic_opt
+  eval_mlr, eval_ridge, eval_lasso, eval_elastic
 )
 
 cat("--- Continuous Regression Model Comparison on Test Set ---\n")
@@ -114,34 +108,34 @@ cat("  RMSE ($) :", best_model_row$RMSE, "\n")
 cat("  MAE ($)  :", best_model_row$MAE, "\n")
 cat("  R-squared:", best_model_row$R_squared, "\n\n")
 
-# 5. Scatter Plot: Predicted vs Actual for primary models
+# 5. Scatter Plot: Predicted vs Actual for all 4 models
 p_mlr <- ggplot(data.frame(Actual = actual_y, Predicted = test_preds$mlr_stepwise), aes(x = Actual, y = Predicted)) +
   geom_point(color = "steelblue", alpha = 0.6) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "firebrick") +
   labs(title = "MLR (Stepwise / Cp)", x = "Actual Salary (USD)", y = "Predicted Salary (USD)") +
   theme_minimal()
 
-p_poly <- ggplot(data.frame(Actual = actual_y, Predicted = test_preds$polynomial), aes(x = Actual, y = Predicted)) +
-  geom_point(color = "brown", alpha = 0.6) +
-  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "firebrick") +
-  labs(title = "Polynomial Regression", x = "Actual Salary (USD)", y = "Predicted Salary (USD)") +
-  theme_minimal()
-
 p_ridge <- ggplot(data.frame(Actual = actual_y, Predicted = test_preds$ridge), aes(x = Actual, y = Predicted)) +
   geom_point(color = "darkgreen", alpha = 0.6) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "firebrick") +
-  labs(title = "Ridge (Best Model)", x = "Actual Salary (USD)", y = "Predicted Salary (USD)") +
+  labs(title = "Ridge (alpha = 0, Best Model)", x = "Actual Salary (USD)", y = "Predicted Salary (USD)") +
   theme_minimal()
 
 p_lasso <- ggplot(data.frame(Actual = actual_y, Predicted = test_preds$lasso), aes(x = Actual, y = Predicted)) +
   geom_point(color = "purple", alpha = 0.6) +
   geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "firebrick") +
-  labs(title = "LASSO Regression", x = "Actual Salary (USD)", y = "Predicted Salary (USD)") +
+  labs(title = "LASSO (alpha = 1)", x = "Actual Salary (USD)", y = "Predicted Salary (USD)") +
+  theme_minimal()
+
+p_elastic <- ggplot(data.frame(Actual = actual_y, Predicted = test_preds$elastic_net), aes(x = Actual, y = Predicted)) +
+  geom_point(color = "darkorange", alpha = 0.6) +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "firebrick") +
+  labs(title = "Elastic Net (alpha = 0.5)", x = "Actual Salary (USD)", y = "Predicted Salary (USD)") +
   theme_minimal()
 
 # Save regression evaluation plots to PDF
 pdf("activity1/step6/regression_evaluation_plots.pdf", width = 10, height = 8)
-gridExtra::grid.arrange(p_mlr, p_poly, p_ridge, p_lasso, ncol = 2)
+gridExtra::grid.arrange(p_mlr, p_ridge, p_lasso, p_elastic, ncol = 2)
 dev.off()
 
 cat("Regression comparison plots saved to: activity1/step6/regression_evaluation_plots.pdf\n")

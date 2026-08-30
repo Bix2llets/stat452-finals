@@ -7,7 +7,7 @@
 
 ### 1.1 Significant Predictors from Multiple Linear Regression (Stepwise MLR)
 
-Under the optimal Multiple Linear Regression model selected via AIC, the estimated dollar coefficients ($\hat{\beta}$) holding all other factors constant are summarized below (Reference categories: `Entry-level`, `America`, `Small Company`, `Analyst`, `Individual Contributor / No Leadership`):
+Under the optimal Multiple Linear Regression model selected via AIC and Mallow's $C_p$, the estimated dollar coefficients ($\hat{\beta}$) holding all other factors constant are summarized below (Reference categories: `Entry-level`, `America`, `Small Company`, `Analyst`, `Individual Contributor / No Leadership`):
 
 | Predictor Term | Estimated Impact ($\hat{\beta}$) | Std. Error | $t$-value | $p$-value | Significance |
 |---|---:|---:|---:|---:|---|
@@ -58,7 +58,7 @@ LASSO regularized regression ($\alpha = 1, \lambda_{\min} = 63.7564$) identified
 ## 2. Answers to the 3 Core Research Questions
 
 ### 📌 Research Question 1: Salary Forecasting & Key Drivers
-* **Forecasting Accuracy:** On the 120-observation independent test set, **Ridge Regression** achieved the best predictive performance ($\text{RMSE} = \$46,435.13, \text{MAE} = \$33,980.78, R^2 = 0.3310$). **Polynomial Regression (Degree 2)** achieved $\text{RMSE} = \$46,859.64, R^2 = 0.3187$, showing nonlinear improvements over Linear OLS.
+* **Forecasting Accuracy:** On the 120-observation independent test set, **Ridge Regression** achieved the best predictive performance ($\text{RMSE} = \$46,435.13, \text{MAE} = \$33,980.78, R^2 = 0.3310$). Elastic Net ($\text{RMSE} = \$46,882.60, R^2 = 0.3181$) and LASSO ($\text{RMSE} = \$46,883.71, R^2 = 0.3180$) also outperformed standard OLS ($\text{RMSE} = \$46,977.65, R^2 = 0.3153$).
 * **Model Selection Consensus:** **Mallow's $C_p$ criterion** ($C_p = 12.18$) and **Backward Stepwise AIC** reached 100% agreement on selecting the identical 11-variable parsimonious model ($R^2_{\text{train}} = 52.62\%, \text{Adjusted } R^2 = 51.40\%$).
 * **Key Determinants:** Geographic location (American premium $+\$59.8\text{k}-\$71.3\text{k}$) and seniority (Executive $+\$83.6\text{k}$, Senior $+\$44.9\text{k}$) are the dominant determinants, followed by discipline (Engineering/Research $+\$32\text{k}-\$34.7\text{k}$) and leadership ($+\$22.9\text{k}$).
 
