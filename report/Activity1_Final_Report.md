@@ -144,21 +144,12 @@ $$Y = \beta_0 + \beta_1 X_1 + \dots + \beta_k X_k + \epsilon$$
 * **Stepwise Adjusted $R^2$:** **0.5140** ($51.40\%$)
 * **Stepwise RSE:** **$\$43,990$**
 
-### 5.4. Mô hình Hồi quy Đa thức (Polynomial Regression Degree 2)
-Thêm thành phần đa thức bậc 2 cho biến liên tục `remote_ratio`:
-$$\text{salary\_in\_usd} = \beta_0 + \sum \beta_j X_j + \gamma_1 \cdot \text{remote\_ratio} + \gamma_2 \cdot \text{remote\_ratio}^2 + \epsilon$$
-* **Multiple $R^2$:** **0.5296** ($52.96\%$)
-* **Adjusted $R^2$:** **0.5144** ($51.44\%$)
-* Trên tập Test: $\text{RMSE} = \$46,859.64, R^2 = 0.3187$ (cải thiện nhẹ so với mô hình tuyến tính $R^2 = 0.3153$).
+### 5.4. Hồi quy Phạt Regularization (Ridge, LASSO, Elastic Net)
+* **Ridge Regression ($\alpha = 0$):** $\lambda_{\min} = 2696.415, \lambda_{1\text{se}} = 20877.36$. Co hệ số mượt mà để kiểm soát phương sai.
+* **LASSO Regression ($\alpha = 1$):** $\lambda_{\min} = 63.7564, \lambda_{1\text{se}} = 4194.748$. Tự động co hệ số và chọn lọc biến.
+* **Elastic Net Regression ($\alpha = 0.5$):** $\lambda_{\min} = 96.4588, \lambda_{1\text{se}} = 4194.748$. Kết hợp hài hòa giữa chuẩn phạt $L_1$ và $L_2$.
 
-### 5.5. Hồi quy Phạt & Grid Search Siêu tham số Elastic Net ($\alpha \in [0, 1]$)
-* **Ridge Regression ($\alpha = 0$):** $\lambda_{\min} = 2696.415, \lambda_{1\text{se}} = 20877.36$.
-* **LASSO Regression ($\alpha = 1$):** $\lambda_{\min} = 63.7564, \lambda_{1\text{se}} = 4194.748$.
-* **Grid Search Elastic Net ($\alpha \in [0.0, 1.0]$ với $\Delta\alpha = 0.05$):**
-  - Quét 21 giá trị $\alpha$ qua 10-fold CV trên tập Train, tìm ra siêu tham số tối ưu tại **$\alpha^* = 0.55$** ($\lambda_{\min} = 96.2395, \text{CV-MSE} = 1.986 \times 10^9$).
-  - Giá trị tiêu chuẩn $\alpha = 0.50$ ($\lambda_{\min} = 96.4588$).
-
-### 5.6. Chẩn đoán các giả thiết hồi quy OLS (Regression Assumptions)
+### 5.5. Chẩn đoán các giả thiết hồi quy OLS (Regression Assumptions)
 1. **Tính Chuẩn của phần dư:** Shapiro-Wilk $W = 0.9739, p = 1.47 \times 10^{-7}$ (lệch đuôi phải do nhóm chuyên gia thu nhập cao).
 2. **Tính Đồng nhất phương sai:** Breusch-Pagan $BP = 44.501, p = 1.25 \times 10^{-5}$.
 3. **Tính Độc lập phần dư:** Durbin-Watson $DW = 1.8408, p = 0.076 > 0.05$ (**thỏa mãn giả thiết không tự tương quan**).
@@ -195,15 +186,13 @@ $$\ln\left(\frac{P(Y=1)}{1 - P(Y=1)}\right) = \beta_0 + \sum \beta_i X_i$$
 
 ### 7.1. Đánh giá Toàn diện các Mô hình Hồi quy Liên tục trên Test Set ($N = 120$ quan sát)
 
-#### Bảng so sánh hiệu năng 6 mô hình Hồi quy trên tập kiểm thử độc lập:
+#### Bảng so sánh hiệu năng 4 mô hình Hồi quy trên tập kiểm thử độc lập:
 | Thứ tự | Mô hình (Model) | Siêu tham số | RMSE ($) | MAE ($) | $R^2$ (Test Set) | Xếp hạng & Đánh giá |
 |---|---|---|---|---|---|---|
-| **1** | **3. Ridge Regression** | $\alpha = 0, \lambda_{\min} = 2696.42$ | **$46,435.13** | **$33,980.78** | **0.3310** | 🥇 **Best Model (RMSE thấp nhất, $R^2$ cao nhất)** |
-| **2** | **2. Polynomial MLR** | Degree 2 (`remote_ratio`) | **$46,859.64** | **$34,614.12** | **0.3187** | 🥈 Cải thiện phi tuyến so với Linear OLS |
-| **3** | **5. Elastic Net ($\alpha = 0.5$)** | $\alpha = 0.50, \lambda_{\min} = 96.46$ | **$46,878.43** | **$34,447.76** | **0.3182** | 🥉 Cân bằng tốt $L_1$ và $L_2$ |
-| **4** | **6. Optimal Elastic Net** | $\alpha = 0.55, \lambda_{\min} = 96.24$ | **$46,880.99** | **$34,450.30** | **0.3181** | Tối ưu hóa từ Grid Search |
-| **5** | **4. LASSO Regression** | $\alpha = 1, \lambda_{\min} = 63.76$ | **$46,883.71** | **$34,453.33** | **0.3180** | Co hệ số và lọc biến |
-| **6** | **1. MLR (Stepwise / $C_p$)** | 11 biến tối ưu | **$46,977.65** | **$34,850.39** | **0.3153** | Baseline OLS chuẩn |
+| **1** | **2. Ridge Regression** | $\alpha = 0, \lambda_{\min} = 2696.42$ | **$46,435.13** | **$33,980.78** | **0.3310** | 🥇 **Best Model (RMSE thấp nhất, $R^2$ cao nhất)** |
+| **2** | **4. Elastic Net** | $\alpha = 0.50, \lambda_{\min} = 96.46$ | **$46,882.60** | **$34,451.66** | **0.3181** | 🥈 Cân bằng tốt $L_1$ và $L_2$ |
+| **3** | **3. LASSO Regression** | $\alpha = 1, \lambda_{\min} = 63.76$ | **$46,883.71** | **$34,453.33** | **0.3180** | 🥉 Co hệ số và lọc biến |
+| **4** | **1. MLR (Stepwise / $C_p$)** | 11 biến tối ưu | **$46,977.65** | **$34,850.39** | **0.3153** | Baseline OLS chuẩn |
 
 * **Lựa chọn mô hình hồi quy tốt nhất:** **Ridge Regression** đạt hiệu năng dự báo cao nhất nhờ kiểm soát phương sai sai số tốt nhất khi đối mặt với các giá trị ngoại lai trên tập kiểm thử.
 
@@ -232,7 +221,7 @@ $$\ln\left(\frac{P(Y=1)}{1 - P(Y=1)}\right) = \beta_0 + \sum \beta_i X_i$$
 ### 8.1. Trả lời trọn vẹn 03 Câu hỏi nghiên cứu (Research Questions)
 
 #### 📌 Câu hỏi 1: Dự báo mức lương và các nhân tố cốt lõi
-* **Mức độ chính xác dự báo:** Mô hình Ridge Regression dự báo mức lương với sai số trung bình tuyệt đối $\text{MAE} = \$33,980$ và giải thích được $33.10\%$ biến thiên trên tập kiểm thử độc lập. Mô hình Đa thức (Polynomial) và Mallow's $C_p$ xác nhận mối quan hệ vững chắc giữa các biến.
+* **Mức độ chính xác dự báo:** Mô hình Ridge Regression dự báo mức lương với sai số trung bình tuyệt đối $\text{MAE} = \$33,980$ và giải thích được $33.10\%$ biến thiên trên tập kiểm thử độc lập. Mô hình Mallow's $C_p$ và Stepwise AIC xác nhận tính ổn định cao của 11 biến dự báo cốt lõi.
 * **Thứ tự các nhân tố quyết định thu nhập:**
   1. **Vị trí công ty (`company_location`):** Doanh nghiệp tại Mỹ trả lương cao hơn vượt bậc so với Châu Âu ($+\$59,765$) và Châu Á ($+\$71,344$) với $p < 10^{-16}$.
   2. **Cấp bậc kinh nghiệm (`experience_level`):** Cấp bậc Executive nhận thêm $+\$83,619$, Senior nhận thêm $+\$44,879$, Mid-level nhận thêm $+\$16,227$ so với Entry-level ($p < 10^{-10}$).
