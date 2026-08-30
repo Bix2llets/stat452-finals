@@ -31,6 +31,7 @@ str(data)
 nrow(data)
 ggplot(data, aes(salary_in_usd)) +
   geom_boxplot()
+ggsave("outlier_salary.pdf")
 
 handle_outlier <- function(data) { # Handle outlier by clamping them in 1.5 IQR
   data_quantile <- quantile(data, c(0.25, 0.75))
@@ -45,8 +46,10 @@ data <- data |>
 
 ggplot(data, aes(salary_in_usd)) +
   geom_boxplot()
+ggsave("salary_distribution.pdf")
 table(data$work_year)
 # The data is seem to be collected in 2020 - 2022 period, thus the work year should remain as numerical value so as to predict the salary of the following years
+#
 
 table(data$remote_ratio)
 
@@ -69,6 +72,8 @@ table(data$job_title)
 # The job title has many value with small frequencies, suggesting they are collected from how people call their working position
 # We unify how the job title by string matching
 
+table(data$company_location)
+table(data$employee_residence)
 # Chosen roles in their discipline: scientist, engineer,
 # Leadership: Is leader or not
 data <- (data |> mutate(
