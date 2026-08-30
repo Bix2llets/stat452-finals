@@ -82,23 +82,11 @@ Best subset regression (`leaps::regsubsets`) was performed across all subset siz
 
 ---
 
-## 4. Model 2: Polynomial Regression (Degree 2)
-
-Second-degree orthogonal polynomial expansion was applied to the continuous feature `remote_ratio`:
-$$\text{salary\_in\_usd} = \beta_0 + \sum \beta_j X_j + \gamma_1 \cdot \text{remote\_ratio} + \gamma_2 \cdot \text{remote\_ratio}^2 + \epsilon$$
-
-- **Polynomial Multiple $R^2$:** 0.5296 ($52.96\%$)
-- **Polynomial Adjusted $R^2$:** 0.5144 ($51.44\%$)
-- **RSE:** \$43,970
-- On the Test Set, Polynomial Regression achieved $\text{RMSE} = \$46,859.64$ and $R^2 = 0.3187$, improving upon Linear OLS ($R^2 = 0.3153$).
-
----
-
-## 5. MLR Assumption Diagnostics
+## 4. MLR Assumption Diagnostics
 
 | Assumption | Test / Metric | Result | Statistical Decision |
 |---|---|---|---|
-| **1. Normality of Residuals** | Shapiro-Wilk Test | $W = 0.9739, \quad p = 1.47 \times 10^{-7}$ | Departures in upper tail (skewed salaries) |
+| **1. Normality of Residuals** | Shapiro-Wilk Test | $W = 0.9739, \quad p = 1.47 \times 10^{-7}$ | Departures in upper tail (skewed high earners) |
 | **2. Homoscedasticity** | Breusch-Pagan Test | $BP = 44.501, \quad p = 1.25 \times 10^{-5}$ | Higher variance among senior earners |
 | **3. Independence** | Durbin-Watson Test | $DW = 1.8408, \quad p = 0.076$ | Fail to reject $H_0$ (No autocorrelation) |
 
@@ -106,7 +94,7 @@ All 4 standard diagnostic plots have been rendered and saved to `mlr_diagnostics
 
 ---
 
-## 6. Regularized Regression Models (Ridge, LASSO, Elastic Net Grid Search)
+## 5. Regularized Regression Models (Ridge, LASSO, Elastic Net)
 
 1. **Ridge Regression ($\alpha = 0$):**
    - $\lambda_{\min} = 2696.415, \quad \lambda_{1\text{se}} = 20877.36$
@@ -114,13 +102,13 @@ All 4 standard diagnostic plots have been rendered and saved to `mlr_diagnostics
 2. **LASSO Regression ($\alpha = 1$):**
    - $\lambda_{\min} = 63.7564, \quad \lambda_{1\text{se}} = 4194.748$
    - Performs automatic feature selection.
-3. **Elastic Net Grid Search ($\alpha \in [0.0, 1.0]$ with $\Delta\alpha = 0.05$):**
-   - Optimal CV mixing parameter on training data: **$\alpha^* = 0.55$** ($\lambda_{\min} = 96.2395, \text{CV-MSE} = 1.986 \times 10^9$).
-   - Standard academic comparison: $\alpha = 0.50$ ($\lambda_{\min} = 96.4588$).
+3. **Elastic Net Regression ($\alpha = 0.5$):**
+   - $\lambda_{\min} = 96.4588, \quad \lambda_{1\text{se}} = 4194.748$
+   - Balances $L_1$ sparsity and $L_2$ shrinkage.
 
 ---
 
-## 7. Artifacts Generated
+## 6. Artifacts Generated
 - Model Bundle: `activity1/step4/continuous_salary_models.rds`
 - Diagnostic Plots: `activity1/step4/mlr_diagnostics.pdf`
 - Formal Test Set Evaluation (RMSE, MAE, $R^2$) is conducted in **Step 6**.

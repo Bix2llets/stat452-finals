@@ -1,6 +1,6 @@
 # ==============================================================================
-# Step 4 - Continuous Salary Regression Modeling (Enhanced STAT452 Suite)
-# Multiple Linear, Polynomial, Mallow's Cp Selection, Ridge, LASSO, Elastic Net Grid Search
+# Step 4 - Continuous Salary Regression Modeling (STAT452 Core Suite)
+# Multiple Linear Regression, Mallow's Cp Selection, Ridge, LASSO, Elastic Net
 # Applied Statistics for Engineers and Scientists II (STAT452)
 # ==============================================================================
 
@@ -87,31 +87,21 @@ cat("Stepwise Optimal MLR Summary:\n")
 print(summary(model_mlr_step))
 cat("\n")
 
-# 5. Model 2: Polynomial Regression (Degree 2) --------------------------------
-cat("--- 5. Fitting Polynomial Regression Model (Degree 2) ---\n")
-model_poly <- lm(
-  salary_in_usd ~ experience_level + employment_type + company_location +
-    company_size + role + leadership + poly(remote_ratio, 2, raw = TRUE) + work_year,
-  data = training_data
-)
-print(summary(model_poly))
-cat("\n")
-
-# 6. MLR Assumption Diagnostics ------------------------------------------------
-cat("--- 6. MLR Assumption Diagnostics ---\n")
+# 5. MLR Assumption Diagnostics ------------------------------------------------
+cat("--- 5. MLR Assumption Diagnostics ---\n")
 mlr_residuals <- residuals(model_mlr_step)
 
-# 6.1 Normality (Shapiro-Wilk)
+# 5.1 Normality (Shapiro-Wilk)
 shapiro_test <- shapiro.test(mlr_residuals)
 cat("1. Normality (Shapiro-Wilk test): W =", round(shapiro_test$statistic, 5),
     ", p-value =", format.pval(shapiro_test$p.value), "\n")
 
-# 6.2 Homoscedasticity (Breusch-Pagan)
+# 5.2 Homoscedasticity (Breusch-Pagan)
 bp_test <- lmtest::bptest(model_mlr_step)
 cat("2. Homoscedasticity (Breusch-Pagan test): BP =", round(bp_test$statistic, 4),
     ", p-value =", format.pval(bp_test$p.value), "\n")
 
-# 6.3 Independence (Durbin-Watson)
+# 5.3 Independence (Durbin-Watson)
 dw_test <- car::durbinWatsonTest(model_mlr_step)
 cat("3. Independence (Durbin-Watson test): DW =", round(dw_test$dw, 4),
     ", p-value =", format.pval(dw_test$p), "\n\n")
@@ -124,7 +114,7 @@ par(mfrow = c(1, 1))
 dev.off()
 cat("Diagnostic plots saved to:", diagnostic_path, "\n\n")
 
-# 7. Regularized Regression Models (Ridge, LASSO, Elastic Net Grid Search) -----
+# 6. Regularized Regression Models (Ridge, LASSO, Elastic Net) -----------------
 design_formula <- ~ experience_level + employment_type + company_location +
   company_size + role + leadership + remote_ratio + work_year
 
@@ -133,14 +123,14 @@ y_train <- training_data$salary_in_usd
 x_test <- model.matrix(design_formula, data = testing_data)[, -1]
 y_test <- testing_data$salary_in_usd
 
-# 7.1 Ridge Regression (alpha = 0)
-cat("--- 7.1 Ridge Regression (alpha = 0) ---\n")
+# 6.1 Ridge Regression (alpha = 0)
+cat("--- 6.1 Ridge Regression (alpha = 0) ---\n")
 cv_ridge <- cv.glmnet(x_train, y_train, alpha = 0, nfolds = 10)
 cat("Ridge optimal lambda (min):", round(cv_ridge$lambda.min, 4), "\n")
 cat("Ridge optimal lambda (1se):", round(cv_ridge$lambda.1se, 4), "\n\n")
 
-# 7.2 LASSO Regression (alpha = 1)
-cat("--- 7.2 LASSO Regression (alpha = 1) ---\n")
+# 6.2 LASSO Regression (alpha = 1)
+cat("--- 6.2 LASSO Regression (alpha = 1) ---\n")
 cv_lasso <- cv.glmnet(x_train, y_train, alpha = 1, nfolds = 10)
 cat("LASSO optimal lambda (min):", round(cv_lasso$lambda.min, 4), "\n")
 cat("LASSO optimal lambda (1se):", round(cv_lasso$lambda.1se, 4), "\n")
@@ -149,50 +139,27 @@ lasso_coef <- coef(cv_lasso, s = "lambda.min")
 print(lasso_coef[lasso_coef[, 1] != 0, , drop = FALSE])
 cat("\n")
 
-# 7.3 Elastic Net Grid Search (alpha in [0, 1])
-cat("--- 7.3 Elastic Net Grid Search for Optimal Alpha ---\n")
-alpha_grid <- seq(0, 1, by = 0.05)
-grid_list <- list()
+# 6.3 Elastic Net Regression (alpha = 0.5)
+cat("--- 6.3 Elastic Net Regression (alpha = 0.5) ---\n")
+cv_elastic <- cv.glmnet(x_train, y_train, alpha = 0.5, nfolds = 10)
+cat("Elastic Net optimal lambda (min):", round(cv_elastic$lambda.min, 4), "\n")
+cat("Elastic Net optimal lambda (1se):", round(cv_elastic$lambda.1se, 4), "\n\n")
 
-for (a in alpha_grid) {
-  cv_fit <- cv.glmnet(x_train, y_train, alpha = a, nfolds = 10)
-  grid_list[[as.character(a)]] <- data.frame(
-    Alpha = a,
-    Lambda_min = cv_fit$lambda.min,
-    CV_MSE = min(cv_fit$cvm)
-  )
-}
-grid_df <- do.call(rbind, grid_list)
-print(grid_df)
-
-# Optimal alpha by minimum CV-MSE on training data
-best_alpha <- grid_df$Alpha[which.min(grid_df$CV_MSE)]
-cat("\nOptimal Alpha by minimum CV error on Training set: alpha =", best_alpha, "\n")
-cv_elastic_opt <- cv.glmnet(x_train, y_train, alpha = best_alpha, nfolds = 10)
-
-# Also standard Elastic Net at alpha = 0.5 for academic comparison
-cv_elastic_05 <- cv.glmnet(x_train, y_train, alpha = 0.5, nfolds = 10)
-cat("\n")
-
-# 8. Generate Predictions on Test Set -----------------------------------------
+# 7. Generate Predictions on Test Set -----------------------------------------
 pred_mlr_step <- predict(model_mlr_step, newdata = testing_data)
-pred_poly <- predict(model_poly, newdata = testing_data)
 pred_ridge <- as.numeric(predict(cv_ridge, newx = x_test, s = "lambda.min"))
 pred_lasso <- as.numeric(predict(cv_lasso, newx = x_test, s = "lambda.min"))
-pred_elastic_05 <- as.numeric(predict(cv_elastic_05, newx = x_test, s = "lambda.min"))
-pred_elastic_opt <- as.numeric(predict(cv_elastic_opt, newx = x_test, s = "lambda.min"))
+pred_elastic <- as.numeric(predict(cv_elastic, newx = x_test, s = "lambda.min"))
 
 test_predictions <- data.frame(
   actual_salary_in_usd = y_test,
   mlr_stepwise = pred_mlr_step,
-  polynomial = pred_poly,
   ridge = pred_ridge,
   lasso = pred_lasso,
-  elastic_net_05 = pred_elastic_05,
-  elastic_net_optimal = pred_elastic_opt
+  elastic_net = pred_elastic
 )
 
-# 9. Save Artifact Bundle for Step 6 & Step 7 ----------------------------------
+# 8. Save Artifact Bundle for Step 6 & Step 7 ----------------------------------
 bundle <- list(
   training_data = training_data,
   testing_data = testing_data,
@@ -206,16 +173,12 @@ bundle <- list(
     best_index = best_cp_idx,
     best_variables = names(which(subset_summary$which[best_cp_idx, ]))
   ),
-  elastic_net_grid = grid_df,
-  best_alpha = best_alpha,
   models = list(
     mlr_full = model_mlr_full,
     mlr_stepwise = model_mlr_step,
-    polynomial = model_poly,
     ridge = cv_ridge,
     lasso = cv_lasso,
-    elastic_net_05 = cv_elastic_05,
-    elastic_net_opt = cv_elastic_opt
+    elastic_net = cv_elastic
   ),
   diagnostics = list(
     shapiro_wilk = shapiro_test,
