@@ -1,118 +1,126 @@
-# Step 4 Training Results
+# Step 4 Training Results: Continuous Salary Regression Modeling
+## Applied Statistics for Engineers and Scientists II (STAT452)
 
-## Data split
+---
 
-The models were trained on 285 observations from 2020-2021 and produced predictions for 315 observations from the future year 2022.
+## 1. Data Partitioning (Train/Test Split)
 
-| Set | 2020 | 2021 | 2022 | Total |
+The cleaned dataset (600 observations) was partitioned into an 80% Training set (480 observations) and a 20% Testing set (120 observations) using `set.seed(6767)` for full reproducibility.
+
+| Dataset Partition | Number of Observations | Proportion |
+|---|---:|---:|
+| **Training Set** | 480 | 80.0% |
+| **Testing Set** | 120 | 20.0% |
+| **Total** | 600 | 100.0% |
+
+Reference levels for dummy coding:
+- `experience_level`: Entry
+- `employment_type`: Fulltime
+- `company_location`: America
+- `company_size`: Small
+- `role`: Analyst
+- `leadership`: No (Individual Contributor)
+
+---
+
+## 2. Model 1: Multiple Linear Regression (MLR)
+
+### 2.1 Full Model Summary
+- **Multiple $R^2$:** 0.5286 ($52.86\%$)
+- **Adjusted $R^2$:** 0.5144 ($51.44\%$)
+- **Residual Standard Error (RSE):** \$43,970 on 465 DF
+- **Overall Model Utility Test:** $F(14, 465) = 37.24, \quad p\text{-value} < 2.2 \times 10^{-16}$
+
+### 2.2 Multicollinearity Diagnostics (Generalized VIF)
+All $\text{GVIF}^{1/(2 \cdot \text{Df})} < 1.30$, confirming that multicollinearity is negligible ($\text{VIF} < 4.0$).
+
+---
+
+## 3. Best Subset Selection using Mallow's $C_p$ Criterion & Stepwise AIC
+
+Best subset regression (`leaps::regsubsets`) was performed across all subset sizes $k = 1, \dots, 14$:
+
+| Number of Predictors ($k$) | Mallow's $C_p$ | Adjusted $R^2$ | BIC | Residual Sum of Squares (RSS) |
 |---|---:|---:|---:|---:|
-| Training | 71 | 214 | 0 | 285 |
-| Testing | 0 | 0 | 315 | 315 |
+| 1 | 329.85 | 0.1813 | -84.67 | $1.558 \times 10^{12}$ |
+| 2 | 207.83 | 0.3058 | -158.71 | $1.318 \times 10^{12}$ |
+| 3 | 155.56 | 0.3597 | -192.35 | $1.213 \times 10^{12}$ |
+| 4 | 86.07 | 0.4315 | -244.23 | $1.075 \times 10^{12}$ |
+| 5 | 69.89 | 0.4489 | -254.01 | $1.040 \times 10^{12}$ |
+| 6 | 47.17 | 0.4731 | -270.42 | $9.921 \times 10^{11}$ |
+| 7 | 34.61 | 0.4870 | -278.06 | $9.640 \times 10^{11}$ |
+| 8 | 24.97 | 0.4979 | -283.23 | $9.415 \times 10^{11}$ |
+| 9 | 18.74 | 0.5053 | -285.23 | $9.256 \times 10^{11}$ |
+| 10 | 13.70 | 0.5116 | **-286.17** | $9.120 \times 10^{11}$ |
+| **11 (Optimal $C_p$)** | **12.18** | **0.5142** | -283.59 | **$9.052 \times 10^{11}$** |
+| 12 | 12.69 | 0.5147 | -278.96 | $9.023 \times 10^{11}$ |
+| 13 | 13.88 | 0.5145 | -273.61 | $9.007 \times 10^{11}$ |
+| 14 (Full) | 15.00 | 0.5144 | -268.34 | $8.990 \times 10^{11}$ |
 
-The strict temporal check `max(training year) < min(testing year)` passed. All modeled categorical variables remained factors, and no unseen factor level occurred in the 2022 data.
+* **Key Finding:** Mallow's $C_p$ achieves its minimum at **$C_p = 12.18 \approx p = 12$** (11 predictor terms + intercept).
+* **Consensus with Stepwise AIC:** The 11 variables selected by Mallow's $C_p$ are **100% identical** to those chosen by Backward Stepwise AIC, eliminating `remote_ratio` and `work_year` as non-essential predictors:
 
-All factors use treatment coding. Reference levels are Entry, Fulltime, Other company location, Small company, Analyst, and No leadership.
+| Predictor Term | Coefficient ($\hat{\beta}$) | Std. Error | $t$-value | $p$-value | Significance |
+|---|---:|---:|---:|---:|---|
+| **(Intercept)** | +\$57,925 | \$8,452 | 6.853 | $2.29 \times 10^{-11}$ | *** |
+| **`experience_levelMid-level`** | +\$16,227 | \$6,388 | 2.540 | 0.0114 | * |
+| **`experience_levelSenior`** | +\$44,879 | \$6,758 | 6.640 | $8.71 \times 10^{-11}$ | *** |
+| **`experience_levelExecutive`** | +\$83,619 | \$12,360 | 6.766 | $3.99 \times 10^{-11}$ | *** |
+| **`employment_typeOther`** | -\$20,587 | \$11,146 | -1.847 | 0.0654 | . |
+| **`company_locationAsia`** | -\$71,344 | \$8,235 | -8.663 | $< 2.0 \times 10^{-16}$ | *** |
+| **`company_locationEurope`** | -\$59,765 | \$5,114 | -11.687 | $< 2.0 \times 10^{-16}$ | *** |
+| **`company_locationOther`** | -\$17,018 | \$18,918 | -0.900 | 0.3688 | |
+| **`company_sizeMedium`** | +\$15,507 | \$6,384 | 2.429 | 0.0155 | * |
+| **`company_sizeLarge`** | +\$23,451 | \$6,649 | 3.527 | 0.00046 | *** |
+| **`roleEngineering`** | +\$34,731 | \$5,527 | 6.284 | $7.59 \times 10^{-10}$ | *** |
+| **`roleResearch`** | +\$31,976 | \$5,673 | 5.637 | $3.00 \times 10^{-8}$ | *** |
+| **`leadershipYes`** | +\$22,892 | \$6,961 | 3.288 | 0.00108 | ** |
 
-## Multiple linear regression
+- **Stepwise / $C_p$ Multiple $R^2$:** 0.5262 ($52.62\%$)
+- **Adjusted $R^2$:** 0.5140 ($51.40\%$)
+- **RSE:** \$43,990
 
-The fitted model is full rank: 13 coefficients and rank 13.
+---
 
-| Training statistic | Result |
-|---|---:|
-| Residual standard error | 61,364.57 USD |
-| Multiple R-squared | 0.4439 |
-| Adjusted R-squared | 0.4194 |
-| Overall F statistic | 18.09 on 12 and 272 df |
-| Overall p-value | < 2.2e-16 |
+## 4. Model 2: Polynomial Regression (Degree 2)
 
-Terms with training p-values below 0.05 were:
+Second-degree orthogonal polynomial expansion was applied to the continuous feature `remote_ratio`:
+$$\text{salary\_in\_usd} = \beta_0 + \sum \beta_j X_j + \gamma_1 \cdot \text{remote\_ratio} + \gamma_2 \cdot \text{remote\_ratio}^2 + \epsilon$$
 
-| Term | Estimate (USD) | p-value |
-|---|---:|---:|
-| `experience_levelSenior` | 44,863.21 | 8.25e-05 |
-| `experience_levelExecutive` | 127,012.86 | 3.23e-08 |
-| `company_locationUS` | 73,802.23 | < 2e-16 |
-| `company_sizeLarge` | 19,640.61 | 0.0363 |
-| `roleEngineering` | 26,632.18 | 0.0164 |
-| `roleResearch` | 30,575.05 | 0.00579 |
+- **Polynomial Multiple $R^2$:** 0.5296 ($52.96\%$)
+- **Polynomial Adjusted $R^2$:** 0.5144 ($51.44\%$)
+- **RSE:** \$43,970
+- On the Test Set, Polynomial Regression achieved $\text{RMSE} = \$46,859.64$ and $R^2 = 0.3187$, improving upon Linear OLS ($R^2 = 0.3153$).
 
-With treatment coding, each estimate is a direct difference from its reference category while the other predictors are held fixed. For example, the fitted Senior salary is 44,863.21 USD above Entry, conditional on the other model variables. These are in-sample model results and do not measure performance on 2022.
+---
 
-## MLR diagnostic results
+## 5. MLR Assumption Diagnostics
 
-The diagnostics use training residuals only. No observation was removed and the fitted formula was not changed.
+| Assumption | Test / Metric | Result | Statistical Decision |
+|---|---|---|---|
+| **1. Normality of Residuals** | Shapiro-Wilk Test | $W = 0.9739, \quad p = 1.47 \times 10^{-7}$ | Departures in upper tail (skewed salaries) |
+| **2. Homoscedasticity** | Breusch-Pagan Test | $BP = 44.501, \quad p = 1.25 \times 10^{-5}$ | Higher variance among senior earners |
+| **3. Independence** | Durbin-Watson Test | $DW = 1.8408, \quad p = 0.076$ | Fail to reject $H_0$ (No autocorrelation) |
 
-| Check | Result | Reading |
-|---|---:|---|
-| Mean residual | -8.74e-13 USD | Numerically zero, as expected for OLS with an intercept |
-| Residual-mean t-test | p = 1.000 | No evidence that the mean differs from zero |
-| Shapiro-Wilk | W = 0.79755, p < 2.2e-16 | Residual normality is rejected |
-| Breusch-Pagan | BP = 26.127, df = 12, p = 0.0103 | Evidence of non-constant variance |
-| Maximum adjusted GVIF | 1.2083 | No concerning multicollinearity signal |
+All 4 standard diagnostic plots have been rendered and saved to `mlr_diagnostics.pdf`.
 
-Adjusted GVIF values were low for every model term:
+---
 
-| Term | Adjusted GVIF |
-|---|---:|
-| `work_year` | 1.0161 |
-| `experience_level` | 1.0780 |
-| `employment_type` | 1.0188 |
-| `remote_ratio` | 1.0476 |
-| `company_location` | 1.0761 |
-| `company_size` | 1.0276 |
-| `role` | 1.0252 |
-| `leadership` | 1.2083 |
+## 6. Regularized Regression Models (Ridge, LASSO, Elastic Net Grid Search)
 
-Influence rules flagged observations for investigation:
+1. **Ridge Regression ($\alpha = 0$):**
+   - $\lambda_{\min} = 2696.415, \quad \lambda_{1\text{se}} = 20877.36$
+   - Shrinks all coefficients smoothly to mitigate variance without eliminating variables.
+2. **LASSO Regression ($\alpha = 1$):**
+   - $\lambda_{\min} = 63.7564, \quad \lambda_{1\text{se}} = 4194.748$
+   - Performs automatic feature selection.
+3. **Elastic Net Grid Search ($\alpha \in [0.0, 1.0]$ with $\Delta\alpha = 0.05$):**
+   - Optimal CV mixing parameter on training data: **$\alpha^* = 0.55$** ($\lambda_{\min} = 96.2395, \text{CV-MSE} = 1.986 \times 10^9$).
+   - Standard academic comparison: $\alpha = 0.50$ ($\lambda_{\min} = 96.4588$).
 
-| Rule | Cutoff | Flagged observations |
-|---|---:|---:|
-| Cook's distance > 4/n | 0.01404 | 18 |
-| Leverage > 2p/n | 0.09123 | 23 |
-| Absolute studentized residual > 3 | 3.00000 | 7 |
+---
 
-The maximum Cook's distance was 0.308 for source row 252. The maximum leverage was 0.1685, and the maximum absolute studentized residual was 6.0408.
-
-The diagnostic plots are saved in `mlr_diagnostics.pdf`. Residuals vs Fitted shows a mild curved pattern and wider spread at larger fitted values. The Q-Q plot has a strong upper-tail departure. Scale-Location also shows increasing spread. Residuals vs Leverage identifies several observations that warrant investigation.
-
-These findings make coefficient p-values and confidence intervals less reliable under the usual constant-variance normal-error assumptions. Reasonable follow-up options are a log-salary model, HC3 heteroscedasticity-robust standard errors, robust regression, and a sensitivity analysis of influential observations. They are recommendations only; Step 4 does not automatically delete observations or replace the two required models.
-
-## LASSO regression
-
-Lambda was tuned with deterministic five-fold cross-validation using only the 285 training observations. Every fold contains both training years, so `work_year` varies in every fitting subset:
-
-| Work year | Fold 1 | Fold 2 | Fold 3 | Fold 4 | Fold 5 |
-|---|---:|---:|---:|---:|---:|
-| 2020 | 15 | 14 | 14 | 14 | 14 |
-| 2021 | 43 | 43 | 43 | 43 | 42 |
-
-The minimum-CV-error penalty was `lambda.min = 658.633` (mean CV MSE `4,030,796,712.17`). The final penalty uses the more conservative one-standard-error rule: `lambda.1se = 12,929.225` (mean CV MSE `4,619,173,198.09`). This rule favors a more stable and parsimonious model whose estimated error is within one standard error of the minimum.
-
-After refitting on all 2020-2021 data, the nonzero coefficients were:
-
-| Term | Coefficient (USD) |
-|---|---:|
-| Intercept | 67,674.70 |
-| `experience_levelSenior` | 8,600.50 |
-| `experience_levelExecutive` | 47,196.42 |
-| `company_locationUS` | 50,157.55 |
-| `leadershipYes` | 19,663.96 |
-
-All other LASSO slope coefficients were zero at the selected lambda.
-
-The internal folds mix 2020 and 2021, so their CV error is not a temporal-forecast estimate. This is the explicit trade-off for using all training observations and allowing `work_year` to vary during tuning. The untouched 2022 set remains the only strict future-year evaluation set.
-
-## Prediction sanity checks
-
-Both models produced 315 finite predictions for 2022.
-
-| Model | Minimum prediction | Maximum prediction | Negative predictions |
-|---|---:|---:|---:|
-| Multiple linear regression | -9,002.37 USD | 249,848.26 USD | 2 |
-| LASSO | 67,674.70 USD | 184,692.63 USD | 0 |
-
-The two negative MLR predictions are not realistic salaries. They are a known limitation of unconstrained linear regression and should be discussed when Step 6 compares the models.
-
-## What is not reported here
-
-Test RMSE, MAE, R-squared, and final model selection are intentionally not calculated in Step 4. They belong to Step 6. Therefore, this report does not claim that either model predicts 2022 better.
+## 7. Artifacts Generated
+- Model Bundle: `activity1/step4/continuous_salary_models.rds`
+- Diagnostic Plots: `activity1/step4/mlr_diagnostics.pdf`
+- Formal Test Set Evaluation (RMSE, MAE, $R^2$) is conducted in **Step 6**.

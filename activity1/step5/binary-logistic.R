@@ -1,4 +1,6 @@
-logistic_data <- readRDS("../dataset/cleaned_data.rds") # Change the directory to the cleaned_data.rds if not found
+data_path <- "activity1/dataset/cleaned_data.rds"
+if (!file.exists(data_path)) data_path <- "../dataset/cleaned_data.rds"
+logistic_data <- readRDS(data_path)
 library(tidyverse)
 
 #
@@ -47,7 +49,9 @@ levels(logistic_data$experience_level)
 levels(logistic_data$company_size)
 
 
-saveRDS(role_senior_env_model, "logistic_top_tier_model.rds")
+out_path <- "activity1/step5/logistic_top_tier_model.rds"
+if (!dir.exists("activity1/step5")) out_path <- "logistic_top_tier_model.rds"
+saveRDS(role_senior_env_model, out_path)
 # The model give that experienece level, leadership, role, company size and company location affect the odds of reaching top 25% of salary, while the employement does not affect. In those elements that affects, only the linear change (i.e. transitioning to the next larger value) significantly affect the odds.
 # After removal:
 # As the seniority increases, the likelihood of falling into the top 25% salary bracket increases by 10.86 times
