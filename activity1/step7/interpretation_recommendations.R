@@ -51,6 +51,9 @@ cat("\n")
 # 2.3 Logistic Regression Odds Ratios
 cat("c) Binary Logistic Regression: Odds Ratios & 95% Confidence Intervals:\n")
 logit_coefs <- coef(step5_model)
+summary(step5_model)
+exp(coef(step5_model))
+
 odds_ratios <- exp(logit_coefs)
 logit_confint <- exp(confint.default(step5_model))
 
@@ -71,7 +74,7 @@ plot_importance <- df_mlr_sig |>
     Term = reorder(Term, Estimate)
   )
 
-p_importance <- ggplot(plot_importance, aes(x = Term, y = Estimate, fill = Effect)) +
+ggplot(plot_importance, aes(x = Term, y = Estimate, fill = Effect)) +
   geom_col() +
   coord_flip() +
   scale_fill_manual(values = c("Positive Impact (+)" = "steelblue", "Negative Impact (-)" = "firebrick")) +
@@ -83,11 +86,7 @@ p_importance <- ggplot(plot_importance, aes(x = Term, y = Estimate, fill = Effec
   ) +
   theme_minimal() +
   theme(legend.position = "bottom")
-
-pdf("activity1/step7/feature_importance_plot.pdf", width = 9, height = 6)
-print(p_importance)
-dev.off()
-cat("Feature importance plot saved to: activity1/step7/feature_importance_plot.pdf\n\n")
+ggsave("activity1/step7/feature_importance_plot.pdf")
 
 # 4. Answers to the 3 Research Questions ---------------------------------------
 cat("--- 7.2 SYNTHESIS & ANSWERS TO RESEARCH QUESTIONS ---\n\n")

@@ -10,6 +10,7 @@
 # heart_rate_linear_model.R and heart_disease_logistic_model.R.
 
 library(pROC)
+library(ggplot2)
 heart_rate <- readRDS("heart_rate_predictions.rds")
 heart_disease <- readRDS("heart_disease_predictions.rds")
 cat(

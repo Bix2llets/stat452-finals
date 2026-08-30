@@ -125,6 +125,17 @@ cat(
   " on", linear_block_test[2, "Df"], "and", linear_block_test[2, "Res.Df"],
   "df, p =", round(linear_block_test[2, "Pr(>F)"], 4), "\n"
 )
+# The chosen model is the reduced one, so save its coefficients beside the
+# full model's: the retained predictors are all significant at 5%.
+reduced_coefficient_table <- coef(summary(reduced_linear_model))
+write.csv(
+  data.frame(
+    term = rownames(reduced_coefficient_table), round(reduced_coefficient_table, 5),
+    row.names = NULL
+  ),
+  "heart_rate_reduced_coefficients.csv",
+  row.names = FALSE
+)
 # triglycerides, alcohol and daily steps leave together for F = 0.44 on 3 and
 # 7177 df (p = 0.722) - three fewer variables to report, and the evaluation
 # shows the held-out error moving by 0.002 bpm.
