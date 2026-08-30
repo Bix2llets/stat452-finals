@@ -9,7 +9,7 @@
 #
 # Run with activity2/step4 as the working directory.
 
-data <- readRDS("../dataset/cleaned_data.rds") # Adjust this to fit the rds file location
+data <- readRDS("activity2/dataset/cleaned_data.rds") # Adjust this to fit the rds file location
 
 # 4a.1 Screening the predictors for redundancy --------------------------------
 # Two near-duplicate predictors split one effect between them: the coefficients
@@ -99,7 +99,7 @@ regression_predictors <- setdiff(
 # 80 / 20: with 9,000 patients that still leaves 1,800 held-out rows, enough to
 # score a classifier on, while giving every fit more to learn from. The seed is
 # what makes the two scripts see the same split.
-set.seed(452)
+set.seed(6767)
 training_rows <- sample(nrow(data), round(0.8 * nrow(data)))
 training_data <- data[training_rows, ]
 testing_data <- data[-training_rows, ]

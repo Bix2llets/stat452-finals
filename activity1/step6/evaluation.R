@@ -52,7 +52,7 @@ ggplot(roc_data, aes(x = FalsePositiveRate, y = Sensitivity)) +
     y = "True Positive Rate (Sensitivity)"
   )
 
-# The area under the curve, as extracted, is 0.87. In 87$ of the cases it correctly rank those with that has top tier salary higher than those without. Since the predition of top tier salary is not critical i.e. they only serve as statistical tools and not contributing
+# The area under the curve, as extracted, is 0.87. In 87% of the cases it correctly rank those with that has top tier salary higher than those without. Since the predition of top tier salary is not critical i.e. they only serve as statistical tools and not contributing
 # in making critical decision, this value is accepted as excellent, which mean the model's predictability is good for the data.
 # Source for it:  https://www.statology.org/what-is-a-good-auc-score/
 
