@@ -94,10 +94,6 @@ fold_assignment <- sample(rep(1:fold_count, length.out = nrow(training_data)))
 regression_predictors <- setdiff(
   predictors, c("resting_heart_rate", "max_heart_rate_achieved")
 )
-design_formula <- reformulate(regression_predictors)
-x_training <- model.matrix(design_formula, training_data)[, -1]
-x_testing <- model.matrix(design_formula, testing_data)[, -1]
-stopifnot(identical(colnames(x_training), colnames(x_testing)))
 
 # ============================================================================
 # 4A  Continuous response: the heart's working range
@@ -184,7 +180,47 @@ par(mfrow = c(2, 2))
 plot(linear_model)
 dev.off()
 
-# 4A.3 Choosing the penalty mixture and its strength --------------------------
+# 4A.3 Backward variable selection ---------------------------------------------
+# Backward elimination removes one term at a time - each time the one whose
+# removal costs the least - and stops when no further removal pays. `step`
+# charges k per coefficient kept; setting k to the 5% chi-square critical value
+# on 1 df makes "worth keeping" mean exactly "significant at 5%", so the search
+# runs on the same rule the coefficient tests use.
+# The full fit leaves five insignificant coefficients, so ask how much of the
+# model is actually carrying the response, then check the whole removed block
+# with one F test rather than trusting a chain of separate decisions.
+selection_penalty <- qchisq(significance_level, df = 1, lower.tail = FALSE)
+reduced_linear_model <- step(
+  linear_model, direction = "backward", k = selection_penalty, trace = 0
+)
+linear_dropped <- setdiff(
+  regression_predictors, attr(terms(reduced_linear_model), "term.labels")
+)
+linear_block_test <- anova(reduced_linear_model, linear_model)
+cat(
+  "backward elimination dropped", length(linear_dropped), "of",
+  length(regression_predictors), "predictors:",
+  paste(linear_dropped, collapse = ", "), "\n"
+)
+cat(
+  "block test: F =", round(linear_block_test[2, "F"], 3),
+  " on", linear_block_test[2, "Df"], "and", linear_block_test[2, "Res.Df"],
+  "df, p =", round(linear_block_test[2, "Pr(>F)"], 4), "\n"
+)
+# triglycerides, alcohol, daily steps and wearable ownership leave together for
+# F = 0.34 on 4 and 7176 df (p = 0.851), and the held-out error below moves by
+# 0.003 bpm - four fewer variables to report at no cost.
+
+# The penalised fits below are given the selected predictors, not all of them:
+# a penalty is there to control how hard the surviving predictors are shrunk,
+# not to repeat a selection the F tests have already made.
+selected_regression_predictors <- attr(terms(reduced_linear_model), "term.labels")
+design_formula <- reformulate(selected_regression_predictors)
+x_training <- model.matrix(design_formula, training_data)[, -1]
+x_testing <- model.matrix(design_formula, testing_data)[, -1]
+stopifnot(identical(colnames(x_training), colnames(x_testing)))
+
+# 4A.4 Choosing the penalty mixture and its strength --------------------------
 # Ridge shrinks correlated coefficients towards each other and keeps every
 # predictor; LASSO can drive one to exactly zero; elastic net is the mixture
 # alpha between them, so alpha is a tuning parameter like lambda, not a setting.
@@ -210,9 +246,10 @@ penalty_selection <- data.frame(
 )
 print(penalty_selection, row.names = FALSE)
 write.csv(penalty_selection, "heart_rate_penalty_selection.csv", row.names = FALSE)
-# Pure ridge is the worst rung (246.69); everything from alpha = 0.1 up sits
-# within 0.04 of the winner, so what helps is having some L1 at all, not the
-# exact mixture - which is also why fixing 0.5 by hand cannot be defended.
+# Pure ridge is the worst rung (246.46); everything from alpha = 0.1 up sits
+# within 0.005 of the winner at 0.4, so what helps is having some L1 at all,
+# not the exact mixture - which is also why fixing 0.5 by hand cannot be
+# defended: on this data the evidence points at 0.4.
 
 best_position <- which.min(penalty_selection$cv_mean_squared_error)
 best_alpha <- penalty_selection$alpha[best_position]
@@ -233,9 +270,10 @@ cat(
     rownames(lasso_coefficients)[lasso_coefficients[, 1] == 0], "(Intercept)"
   ), collapse = ", "), "\n"
 )
-# The cross-validated alpha lands on 1, so the elastic net collapses to LASSO
-# here. It removes only two more columns - non-anginal chest pain and wearable
-# ownership - because the correlation screen already took out the redundancy.
+# The cross-validated alpha is 0.4, a genuine mixture. Pure LASSO removes only
+# one more column, non-anginal chest pain: the correlation screen and the
+# backward elimination have already taken out everything that was carrying
+# nothing, which is what feeding the penalties the selected set is for.
 
 # The curve shows whether lambda.min sits in a flat region, where a larger
 # penalty costs almost nothing, or at a sharp minimum.
@@ -244,7 +282,7 @@ plot(elastic_fit)
 title(paste("Elastic net, cross-validated alpha =", best_alpha), line = 2.5)
 dev.off()
 
-# 4A.4 Held-out comparison ------------------------------------------------------
+# 4A.5 Held-out comparison ------------------------------------------------------
 # Root mean squared error is in bpm, mean absolute error resists large misses,
 # and R-squared on the test rows is 1 - SSE/SST against the test mean.
 score_regression <- function(model_name, predicted) {
@@ -262,6 +300,10 @@ predict_penalised <- function(fit) {
 
 regression_comparison <- rbind(
   score_regression("multiple linear regression", predict(linear_model, testing_data)),
+  score_regression(
+    paste0("backward elimination (", length(linear_dropped), " dropped)"),
+    predict(reduced_linear_model, testing_data)
+  ),
   score_regression("ridge (alpha = 0)", predict_penalised(ridge_fit)),
   score_regression("LASSO (alpha = 1)", predict_penalised(lasso_fit)),
   score_regression(
@@ -271,9 +313,10 @@ regression_comparison <- rbind(
 )
 print(regression_comparison, row.names = FALSE)
 write.csv(regression_comparison, "heart_rate_model_comparison.csv", row.names = FALSE)
-# All four land within 0.03 bpm of each other (RMSE 15.961-15.987, R-squared
-# 0.550). With 7,200 training rows against 23 predictors least squares is not
-# overfitting, so there is no variance for a penalty to buy back.
+# All five land within 0.03 bpm of each other (RMSE 15.961-15.993, R-squared
+# 0.548-0.550). With 7,200 training rows against 19 columns least squares is not
+# overfitting, so there is no variance for a penalty to buy back; what selection
+# buys here is a smaller model to report, not a more accurate one.
 
 # ============================================================================
 # 4B  Binary response: the odds of heart disease
@@ -301,24 +344,22 @@ print(round(coef(logistic_summary), 4))
 # large amount of information about the diagnosis.
 
 # 4B.2 Backward variable selection ----------------------------------------------
-# Dropping one term from a fitted model raises its deviance, and under the null
-# that the term is zero the rise is chi-square on the coefficients removed.
-# Backward elimination repeats that: remove the least significant term, refit,
-# and stop once every survivor clears the 5% level. It is the unpenalised
-# counterpart of LASSO, used because the coefficients have to keep the standard
-# errors the odds ratios and their intervals are read from.
-reduced_model <- logistic_model
-repeat {
-  term_tests <- drop1(reduced_model, test = "Chisq")
-  term_tests <- term_tests[!is.na(term_tests[, "Pr(>Chi)"]), , drop = FALSE]
-  weakest <- rownames(term_tests)[which.max(term_tests[, "Pr(>Chi)"])]
-  if (max(term_tests[, "Pr(>Chi)"]) < significance_level) break
-  cat(
-    " removing", weakest, "- p =",
-    round(max(term_tests[, "Pr(>Chi)"]), 4), "\n"
-  )
-  reduced_model <- update(reduced_model, paste(". ~ . -", weakest))
-}
+# The same search on the logistic model, where the cost of a deletion is the
+# rise in deviance - chi-square on the coefficients removed - so the same k
+# keeps the rule at the 5% level. `step`'s default k = 2 is far weaker: at 7,200
+# patients it keeps everything with a p-value under roughly 0.16, which here
+# means dropping a single predictor.
+# Print what the default would have kept, so the stricter setting is a shown
+# choice rather than a silent one.
+permissive_model <- step(logistic_model, direction = "backward", trace = 0)
+reduced_model <- step(
+  logistic_model, direction = "backward", k = selection_penalty, trace = 0
+)
+cat(
+  "step at k = 2 keeps", length(attr(terms(permissive_model), "term.labels")),
+  "predictors; at the 5% level it keeps",
+  length(attr(terms(reduced_model), "term.labels")), "\n"
+)
 droppable <- setdiff(predictors, attr(terms(reduced_model), "term.labels"))
 cat(
   "backward elimination dropped", length(droppable), "of", length(predictors),
@@ -331,9 +372,9 @@ cat(
   " on", deviance_test[2, "Df"], "df, p =",
   round(deviance_test[2, "Pr(>Chi)"], 4), "\n"
 )
-# The four leave in that order, alcohol last at p = 0.051. Removing them all at
-# once costs X2 = 8.80 on 4 df (p = 0.066), short of the 5% cut, so the smaller
-# model is the one to interpret.
+# The same four the linear model lost, bar exercise minutes for daily steps.
+# Removing them together costs X2 = 8.80 on 4 df (p = 0.066), short of the 5%
+# cut, so the smaller model is the one to interpret.
 
 # 4B.3 Odds ratios ---------------------------------------------------------------
 # exp(coefficient) is the odds ratio, and exp of the Wald interval gives its
