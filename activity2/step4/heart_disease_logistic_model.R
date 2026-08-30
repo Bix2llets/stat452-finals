@@ -8,7 +8,7 @@
 #
 # Run with activity2/step4 as the working directory.
 
-source("data_preparation.R")
+source("activity2/step4/data_preparation.R")
 
 # 4c.1 Ordinary binary logistic regression -------------------------------------
 # Logistic regression models the log-odds of the diagnosis as a linear function
@@ -20,15 +20,10 @@ source("data_preparation.R")
 logistic_data <- training_data[c(predictors, "has_heart_disease_num")]
 logistic_model <- glm(
   has_heart_disease_num ~ .,
-  data = logistic_data, family = binomial
+  data = logistic_data, family = "binomial"
 )
 logistic_summary <- summary(logistic_model)
-cat(
-  "null deviance:", round(logistic_model$null.deviance, 1),
-  " residual deviance:", round(deviance(logistic_model), 1),
-  "on", df.residual(logistic_model), "df\n"
-)
-print(round(coef(logistic_summary), 4))
+logistic_summary
 # The deviance falls from 8803.2 to 3444.5, so the predictors together carry a
 # large amount of information about the diagnosis.
 
@@ -41,7 +36,8 @@ print(round(coef(logistic_summary), 4))
 # choice rather than a silent one.
 permissive_model <- step(logistic_model, direction = "backward", trace = 0)
 reduced_model <- step(
-  logistic_model, direction = "backward", k = selection_penalty, trace = 0
+  logistic_model,
+  direction = "backward", k = selection_penalty, trace = 0
 )
 cat(
   "step at k = 2 keeps", length(attr(terms(permissive_model), "term.labels")),

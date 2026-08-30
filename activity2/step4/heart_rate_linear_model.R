@@ -13,7 +13,7 @@
 library(glmnet)
 library(car)
 
-source("data_preparation.R")
+source("activity2/step4/data_preparation.R")
 
 y_training <- training_data$heart_rate_difference
 y_testing <- testing_data$heart_rate_difference
@@ -45,7 +45,8 @@ cat(
 )
 print(round(coefficient_table[significant_terms, ], 4))
 write.csv(
-  data.frame(term = rownames(coefficient_table), round(coefficient_table, 5),
+  data.frame(
+    term = rownames(coefficient_table), round(coefficient_table, 5),
     row.names = NULL
   ),
   "heart_rate_coefficients.csv",
@@ -54,6 +55,11 @@ write.csv(
 # 18 of 22 coefficients are significant and the fit explains 57.5% of the
 # training variance; age alone costs 1.08 bpm of working range per year.
 
+linear_model <- step(
+  linear_model,
+  direction = "backward", k = selection_penalty, trace = 0
+)
+# Reducing the variables in the model
 # 4b.2 Regression assumptions --------------------------------------------------
 # Least squares needs constant residual variance, roughly normal residuals and
 # predictors that are not near-duplicates of each other.
@@ -103,9 +109,6 @@ dev.off()
 # The full fit leaves four insignificant coefficients, so ask how much of the
 # model is actually carrying the response, then check the whole removed block
 # with one F test rather than trusting a chain of separate decisions.
-reduced_linear_model <- step(
-  linear_model, direction = "backward", k = selection_penalty, trace = 0
-)
 linear_dropped <- setdiff(
   regression_predictors, attr(terms(reduced_linear_model), "term.labels")
 )
