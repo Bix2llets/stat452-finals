@@ -253,9 +253,6 @@ print(overlap_table, row.names = FALSE)
 # There are no clear seprator -- or cutoff value -- that are statisitcally significant to classify if a person have heart disease or not
 
 
-# =============================================================================
-# 4. Each categorical variable against the diagnosis
-# =============================================================================
 # Evaluate the risks and odd of people having heart disease in each categorical variable.
 
 rate_by_level <- do.call(rbind, lapply(categorical_all, function(v) {
@@ -311,7 +308,10 @@ rate_by_level |>
   theme(axis.text.x = element_text(angle = 30, hjust = 1))
 ggsave("disease_rate_by_category.pdf", width = 13, height = 9)
 
-# Based on the comparision and the plot, Those having bad health status, being old, have insufficient exercise or smokes has are more prone to having heart disease. Male tends to have more heart disease than woman. The heart disease diagnostic seem to be consistent with common sense:
+# Based on the comparision and the plot,
+# Those having bad health status, being old, have insufficient exercise or smokes has are more prone to having heart disease.
+# Male tends to have more heart disease than woman.
+# The heart disease diagnostic seem to be consistent with common sense about health condition:
 
 
 # 5. Relationships among the predictors
@@ -359,10 +359,7 @@ data |>
   pivot_longer(-age, names_to = "variable", values_to = "value") |>
   ggplot(aes(age, value)) +
   geom_point(alpha = 0.06, size = 0.5) +
-  geom_smooth(
-    method = "lm", formula = y ~ x, se = FALSE,
-    aes(colour = "linear")
-  ) +
+  geom_smooth() +
   scale_colour_manual(values = c(linear = "red", quadratic = "blue")) +
   facet_wrap(~variable, scales = "free_y") +
   labs(
@@ -378,11 +375,7 @@ data |>
   pivot_longer(-fasting_blood_sugar, names_to = "variable", values_to = "value") |>
   ggplot(aes(fasting_blood_sugar, value)) +
   geom_point(alpha = 0.06, size = 0.5) +
-  geom_smooth(
-    method = "lm", formula = y ~ x, se = FALSE,
-    aes(colour = "linear")
-  ) +
-  scale_colour_manual(values = c(linear = "red", quadratic = "blue")) +
+  geom_smooth() +
   facet_wrap(~variable, scales = "free_y") +
   labs(
     title = "Fasting Blood Sugar and HbA1c",
@@ -398,11 +391,7 @@ data |>
   pivot_longer(-daily_steps, names_to = "variable", values_to = "value") |>
   ggplot(aes(daily_steps, value)) +
   geom_point(alpha = 0.06, size = 0.5) +
-  geom_smooth(
-    method = "lm", formula = y ~ x, se = FALSE,
-    aes(colour = "linear")
-  ) +
-  scale_colour_manual(values = c(linear = "red", quadratic = "blue")) +
+  geom_smooth() +
   facet_wrap(~variable, scales = "free_y") +
   labs(
     title = "Daily Steps and Exercise Minutes",
@@ -417,11 +406,7 @@ data |>
   pivot_longer(-resting_bp_diastolic, names_to = "variable", values_to = "value") |>
   ggplot(aes(resting_bp_diastolic, value)) +
   geom_point(alpha = 0.06, size = 0.5) +
-  geom_smooth(
-    method = "lm", formula = y ~ x, se = FALSE,
-    aes(colour = "linear")
-  ) +
-  scale_colour_manual(values = c(linear = "red", quadratic = "blue")) +
+  geom_smooth() +
   facet_wrap(~variable, scales = "free_y") +
   labs(
     title = "Resting Blood Pressure: Diastolic vs Systolic",
@@ -431,3 +416,5 @@ data |>
   theme(legend.position = "bottom")
 
 ggsave("resting_bp_sys_dia.pdf")
+
+# The plots shows almost linear relationshipo between the variables

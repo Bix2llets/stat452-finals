@@ -9,6 +9,7 @@
 # NOTE: REMOVED the cholesteol hdl ratio unless he can explain by himself, NOT AI, about the meaning of this
 library(dplyr)
 library(tidyr)
+library(tidyverse)
 library(ggplot2)
 
 raw <- read.csv("activity2/dataset/heart_disease_risk_2026.csv", stringsAsFactors = FALSE) # Adjust this to fit the csv file location
