@@ -19,16 +19,49 @@ library(car)
 
 data <- readRDS("../dataset/cleaned_data.rds") # Adjust this to fit the rds file location
 
-# 4.0 Predictors and a shared train / test split ------------------------------
-# Every model below is fitted on the same training rows and scored on the same
-# held-out rows, so the comparison measures the model and not the split.
-numeric_predictors <- c(
+# 4.0 Screening the predictors for redundancy ---------------------------------
+# Two near-duplicate predictors split one effect between them: the coefficients
+# get large standard errors and unstable signs, which is what a VIF above 5
+# reports after the fact. The correlation matrix shows it before fitting.
+# Take the pairs above 0.7 that Step 2's heatmap makes visible, and keep one
+# member of each - a screen on the predictors alone, so it does not peek at
+# either response.
+numeric_candidates <- c(
   "age", "resting_bp_systolic", "resting_bp_diastolic", "cholesterol_total",
   "hdl", "ldl", "triglycerides", "fasting_blood_sugar", "hba1c", "bmi",
   "resting_heart_rate", "max_heart_rate_achieved", "st_depression",
   "alcohol_units_per_week", "exercise_minutes_per_week", "sleep_hours",
   "stress_score", "daily_steps", "diet_quality_score"
 )
+correlation_matrix <- cor(data[numeric_candidates])
+correlation_threshold <- 0.7
+strong_pairs <- which(
+  abs(correlation_matrix) > correlation_threshold & upper.tri(correlation_matrix),
+  arr.ind = TRUE
+)
+print(data.frame(
+  first = rownames(correlation_matrix)[strong_pairs[, "row"]],
+  second = colnames(correlation_matrix)[strong_pairs[, "col"]],
+  correlation = round(correlation_matrix[strong_pairs], 3),
+  row.names = NULL
+))
+
+# cholesterol_total is roughly hdl + ldl + triglycerides / 5, so it is close to
+# a linear combination of three predictors already in the model; hba1c is the
+# three-month average that fasting_blood_sugar samples once; and the two blood
+# pressure readings move together. Keep the more informative member of each.
+redundant_predictors <- c(
+  "cholesterol_total", "fasting_blood_sugar", "resting_bp_diastolic"
+)
+numeric_predictors <- setdiff(numeric_candidates, redundant_predictors)
+cat(
+  "dropped as redundant:", paste(redundant_predictors, collapse = ", "),
+  "\n numeric predictors kept:", length(numeric_predictors), "of",
+  length(numeric_candidates), "\n"
+)
+# age and max_heart_rate_achieved stay together at -0.731: that leaves a VIF
+# near 2.1, low enough to read both coefficients, and 4B needs them separately.
+
 categorical_predictors <- c(
   "sex", "chest_pain_type", "exercise_induced_angina",
   "family_history", "smoker_status", "wearable_owner"
@@ -36,8 +69,13 @@ categorical_predictors <- c(
 predictors <- c(numeric_predictors, categorical_predictors)
 stopifnot(!any(sapply(data[categorical_predictors], is.ordered)))
 
+# 4.0b A shared train / test split --------------------------------------------
+# Every model below is fitted on the same training rows and scored on the same
+# held-out rows, so the comparison measures the model and not the split.
+# 80 / 20: with 9,000 patients that still leaves 1,800 held-out rows, enough to
+# score a classifier on, while giving every fit more to learn from.
 set.seed(452)
-training_rows <- sample(nrow(data), round(0.7 * nrow(data)))
+training_rows <- sample(nrow(data), round(0.8 * nrow(data)))
 training_data <- data[training_rows, ]
 testing_data <- data[-training_rows, ]
 cat(
@@ -102,7 +140,7 @@ write.csv(
   "heart_rate_coefficients.csv",
   row.names = FALSE
 )
-# 13 of 26 coefficients are significant and the fit explains 57.9% of the
+# 18 of 23 coefficients are significant and the fit explains 57.5% of the
 # training variance; age alone costs 1.08 bpm of working range per year.
 
 # 4A.2 Regression assumptions --------------------------------------------------
@@ -128,7 +166,7 @@ cat(
   " on", residual_fit["df"], "df, 5% critical value:",
   round(qchisq(significance_level, residual_fit["df"], lower.tail = FALSE), 2), "\n"
 )
-# X2 = 7.38 against a 14.07 critical value, so the residuals are close enough to
+# X2 = 8.40 against a 14.07 critical value, so the residuals are close enough to
 # normal for the t and F tests to be read as they stand.
 
 # VIF above 5 means a predictor is largely reproducible from the others, which
@@ -138,8 +176,8 @@ variance_inflation <- vif(linear_model)
 inflation_scores <- variance_inflation[, "GVIF^(1/(2*Df))"]^2
 print(round(sort(inflation_scores, decreasing = TRUE)[1:5], 3))
 cat("predictors with VIF > 5:", sum(inflation_scores > 5), "\n")
-# Only cholesterol_total (16.0) and ldl (12.7) exceed 5 - the collinear pair
-# Step 1 flagged. Their own standard errors are inflated; the rest are not.
+# Nothing reaches 5 now - the largest is exercise_minutes_per_week at 1.47.
+# Screening the correlated pairs first is what keeps the coefficients readable.
 
 pdf("heart_rate_diagnostics.pdf", width = 8, height = 8)
 par(mfrow = c(2, 2))
@@ -172,8 +210,8 @@ penalty_selection <- data.frame(
 )
 print(penalty_selection, row.names = FALSE)
 write.csv(penalty_selection, "heart_rate_penalty_selection.csv", row.names = FALSE)
-# Pure ridge is the worst rung (245.29); everything from alpha = 0.1 up sits
-# within 0.03 of the winner, so what helps is having some L1 at all, not the
+# Pure ridge is the worst rung (246.69); everything from alpha = 0.1 up sits
+# within 0.04 of the winner, so what helps is having some L1 at all, not the
 # exact mixture - which is also why fixing 0.5 by hand cannot be defended.
 
 best_position <- which.min(penalty_selection$cv_mean_squared_error)
@@ -196,8 +234,8 @@ cat(
   ), collapse = ", "), "\n"
 )
 # The cross-validated alpha lands on 1, so the elastic net collapses to LASSO
-# here; it drops cholesterol_total - the collinear one the VIF flagged - and
-# wearable ownership.
+# here. It removes only two more columns - non-anginal chest pain and wearable
+# ownership - because the correlation screen already took out the redundancy.
 
 # The curve shows whether lambda.min sits in a flat region, where a larger
 # penalty costs almost nothing, or at a sharp minimum.
@@ -233,8 +271,8 @@ regression_comparison <- rbind(
 )
 print(regression_comparison, row.names = FALSE)
 write.csv(regression_comparison, "heart_rate_model_comparison.csv", row.names = FALSE)
-# All four land within 0.01 bpm of each other (RMSE 16.005-16.015, R-squared
-# 0.548). With 6,300 training rows against 26 predictors least squares is not
+# All four land within 0.03 bpm of each other (RMSE 15.961-15.987, R-squared
+# 0.550). With 7,200 training rows against 23 predictors least squares is not
 # overfitting, so there is no variance for a penalty to buy back.
 
 # ============================================================================
@@ -259,32 +297,43 @@ cat(
   "on", df.residual(logistic_model), "df\n"
 )
 print(round(coef(logistic_summary), 4))
-# The deviance falls from 7695.2 to 3047.6, so the predictors together carry a
+# The deviance falls from 8803.2 to 3442.4, so the predictors together carry a
 # large amount of information about the diagnosis.
 
-# 4B.2 Removing the terms that carry nothing ------------------------------------
-# Dropping a block of predictors raises the deviance; under the null that all of
-# them are zero the rise is chi-square on the number of coefficients removed.
-# Drop every predictor whose terms are all insignificant, then test the whole
-# block at once rather than trusting the individual p-values.
-term_p_values <- drop1(logistic_model, test = "Chisq")
-droppable <- rownames(term_p_values)[
-  term_p_values[, "Pr(>Chi)"] >= significance_level
-]
-droppable <- droppable[!is.na(droppable)]
-cat("dropped predictors:", paste(droppable, collapse = ", "), "\n")
-
-reduced_model <- update(
-  logistic_model, reformulate(setdiff(predictors, droppable), response = ".")
+# 4B.2 Backward variable selection ----------------------------------------------
+# Dropping one term from a fitted model raises its deviance, and under the null
+# that the term is zero the rise is chi-square on the coefficients removed.
+# Backward elimination repeats that: remove the least significant term, refit,
+# and stop once every survivor clears the 5% level. It is the unpenalised
+# counterpart of LASSO, used because the coefficients have to keep the standard
+# errors the odds ratios and their intervals are read from.
+reduced_model <- logistic_model
+repeat {
+  term_tests <- drop1(reduced_model, test = "Chisq")
+  term_tests <- term_tests[!is.na(term_tests[, "Pr(>Chi)"]), , drop = FALSE]
+  weakest <- rownames(term_tests)[which.max(term_tests[, "Pr(>Chi)"])]
+  if (max(term_tests[, "Pr(>Chi)"]) < significance_level) break
+  cat(
+    " removing", weakest, "- p =",
+    round(max(term_tests[, "Pr(>Chi)"]), 4), "\n"
+  )
+  reduced_model <- update(reduced_model, paste(". ~ . -", weakest))
+}
+droppable <- setdiff(predictors, attr(terms(reduced_model), "term.labels"))
+cat(
+  "backward elimination dropped", length(droppable), "of", length(predictors),
+  "predictors:", paste(droppable, collapse = ", "), "\n"
 )
+
 deviance_test <- anova(reduced_model, logistic_model, test = "Chisq")
 cat(
   "block test: X2 =", round(deviance_test[2, "Deviance"], 3),
   " on", deviance_test[2, "Df"], "df, p =",
   round(deviance_test[2, "Pr(>Chi)"], 4), "\n"
 )
-# Removing all eight at once costs X2 = 13.97 on 8 df (p = 0.083), short of the
-# 5% cut, so the reduced model is kept as the one to interpret.
+# The four leave in that order, alcohol last at p = 0.051. Removing them all at
+# once costs X2 = 8.80 on 4 df (p = 0.066), short of the 5% cut, so the smaller
+# model is the one to interpret.
 
 # 4B.3 Odds ratios ---------------------------------------------------------------
 # exp(coefficient) is the odds ratio, and exp of the Wald interval gives its
@@ -312,9 +361,9 @@ odds_ratio_table <- odds_ratio_table[
 ]
 print(odds_ratio_table, row.names = FALSE)
 write.csv(odds_ratio_table, "heart_disease_odds_ratios.csv", row.names = FALSE)
-# Exercise-induced angina multiplies the odds by 8.69 with everything else held
-# fixed, but per standard deviation the exercise test dominates: 21.4 bpm more
-# peak heart rate multiplies the odds by 0.069.
+# Exercise-induced angina multiplies the odds by 9.22 with everything else held
+# fixed, but per standard deviation the exercise test dominates: 21.3 bpm more
+# peak heart rate multiplies the odds by 0.070.
 
 # 4B.4 Classification on the held-out rows ----------------------------------------
 # The fitted probability becomes a prediction only after a cutoff is chosen; at
@@ -350,14 +399,14 @@ confusion_matrix <- table(
 print(confusion_matrix)
 write.csv(as.data.frame.matrix(confusion_matrix), "heart_disease_confusion_matrix.csv")
 print(score_classification(0.5), row.names = FALSE)
-# 90.1% accuracy on rows the model never saw, but sensitivity (79.6%) trails
-# specificity (94.8%): it misses more true cases than it misflags healthy ones.
+# 90.1% accuracy on rows the model never saw, but sensitivity (80.3%) trails
+# specificity (94.5%): it misses more true cases than it misflags healthy ones.
 
 # A cutoff is a choice, not a property of the model: lowering it trades
 # specificity for sensitivity. Sweep it so the trade is visible in numbers.
 threshold_sweep <- do.call(rbind, lapply(seq(0.1, 0.9, by = 0.1), score_classification))
 print(threshold_sweep, row.names = FALSE)
 write.csv(threshold_sweep, "heart_disease_threshold_sweep.csv", row.names = FALSE)
-# 0.4 balances the two best (F1 = 0.8415, sensitivity 84.6% at the same 90.1%
-# accuracy); screening, where a missed case costs more than a false alarm, would
-# go lower still - 0.2 finds 91.7% of the cases for 10.2 points of specificity.
+# F1 peaks at 0.5 (0.8347) with 0.4 a hair behind (0.8335) at 84.0% sensitivity;
+# screening, where a missed case costs more than a false alarm, would go lower
+# still - 0.2 finds 91.1% of the cases for 10.0 points of specificity.

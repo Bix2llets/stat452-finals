@@ -4,4 +4,4 @@
 | ---- | ---- |
 | Phat |      |
 | Bao  |      |
-| Dung | Fit and compare the regression and logistic models |
+| Dung | Screen the collinear predictors, then fit and compare the models |
